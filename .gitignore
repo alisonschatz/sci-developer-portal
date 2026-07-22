@@ -1,0 +1,15 @@
+# Dependências e build
+node_modules/
+dist/
+
+# Segredos — URLs internas vivem só aqui (local) e nos secrets (CI)
+.env
+
+# Gerados pelo pipeline (fetch + build:content) — regenerados sempre
+src/base/*
+!src/base/.gitkeep
+public/openapi/*
+!public/openapi/.gitkeep
+public/portal.config.json
+
+.DS_Store

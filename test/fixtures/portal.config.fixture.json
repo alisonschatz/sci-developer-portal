@@ -1,0 +1,28 @@
+{
+  "environment": "production",
+  "sharedTokenVariable": "sci_auth_token",
+  "apis": [
+    {
+      "id": "auth",
+      "title": "Autenticação",
+      "slug": "auth",
+      "isAuthProvider": true,
+      "serverUrl": "https://api-auth.sci.com.br",
+      "default": true,
+      "securitySchemes": [
+        { "name": "Gerar JWT" },
+        { "name": "Atualizar JWT", "prefill": { "token": "{{sci_auth_token}}" } }
+      ],
+      "tokenResponseField": "token"
+    },
+    {
+      "id": "rhnetsocial",
+      "title": "RH Net Social",
+      "slug": "rhnetsocial",
+      "isAuthProvider": false,
+      "serverUrl": "https://api2.rhnetsocial.com.br",
+      "default": false,
+      "securityScheme": "bearerAuth"
+    }
+  ]
+}

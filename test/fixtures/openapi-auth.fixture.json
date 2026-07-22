@@ -1,0 +1,78 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Auth",
+    "version": "1.0.0",
+    "description": "placeholder"
+  },
+  "tags": [
+    { "name": "Autenticação", "description": "placeholder vindo do backend" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "Gerar JWT": { "type": "http", "scheme": "basic" },
+      "Atualizar JWT": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "paths": {
+    "/api/v1/auth/credencial/login": {
+      "post": {
+        "operationId": "a1b2c3d4hash",
+        "tags": ["Autenticação"],
+        "security": [{ "Gerar JWT": [] }],
+        "summary": "placeholder",
+        "responses": {
+          "201": {
+            "description": "Token gerado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": { "type": "string" },
+                    "token": { "type": "string" },
+                    "validade": { "type": "integer" },
+                    "payload": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "e5f6g7h8hash",
+        "tags": ["Autenticação"],
+        "security": [{ "Atualizar JWT": [] }],
+        "summary": "placeholder",
+        "responses": {
+          "201": {
+            "description": "Token refresh feito com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensagem": { "type": "string" },
+                    "token": { "type": "string" },
+                    "validade": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/debug-tokens": {
+      "get": {
+        "operationId": "internalOnlyHash",
+        "tags": ["Autenticação"],
+        "summary": "Rota interna que a blacklist do fetch-api.js deve remover",
+        "responses": { "200": { "description": "ok" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+# Deploy de PRODUÇÃO — fluxo simples provisório (validação do projeto).
+# Quando o portal for validado, o fluxo definitivo (aprovações, ambientes,
+# homologação) passa a ser responsabilidade do DevOps — ver deploy-hml.yml.
+#
+# Secrets necessários (Settings → Secrets and variables → Actions):
+#   AUTH_SERVER_URL          ex.: https://api-auth.sci.com.br
+#   RHNETSOCIAL_SERVER_URL   ex.: https://api2.rhnetsocial.com.br
+#   (API nova = +1 secret <ID>_SERVER_URL — o nome é derivado do id;
+#    `npm run env:example` lista todos.)
+name: "Deploy — Produção"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Testes
+        run: npm test
+      - name: Fetch + build (produção)
+        env:
+          AUTH_SERVER_URL: ${{ secrets.AUTH_SERVER_URL }}
+          RHNETSOCIAL_SERVER_URL: ${{ secrets.RHNETSOCIAL_SERVER_URL }}
+        run: |
+          node scripts/fetch.js production
+          node scripts/build-content.js production
+      - name: Build do portal
+        run: npx vite build
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

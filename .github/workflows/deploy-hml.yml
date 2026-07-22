@@ -1,0 +1,20 @@
+# Deploy de HOMOLOGAÇÃO — a implementar (responsabilidade do DevOps
+# após a validação do projeto).
+#
+# O projeto já suporta o ambiente sem nenhuma mudança de código:
+#   npm run api:sync:hml   → fetch + build apontando pras APIs de
+#                            homologação (variáveis <ID>_SERVER_URL_HML)
+# O portal gerado marca "(Homologação)" no título e o "Send" testa
+# contra os servers de hml de verdade.
+name: "Deploy — Homologação (a implementar)"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::Fluxo de homologação ainda não implementado (DevOps)."
+          exit 1

@@ -1,0 +1,68 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SCI - API RH Net Social",
+    "version": "1.0.0",
+    "description": "placeholder"
+  },
+  "tags": [
+    { "name": "Funcionario", "description": "placeholder vindo do backend" },
+    { "name": "Feriado", "description": "Permite criação, edição e exclusão de feriados (placeholder incorreto vindo do backend)" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "paths": {
+    "/api/v1/funcionario/preliminar": {
+      "post": {
+        "operationId": "e5f6g7h8hash",
+        "tags": ["Funcionario"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "placeholder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": { "type": "string" },
+                  "cpf": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Criado",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "id": { "type": "integer" } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feriados": {
+      "get": {
+        "operationId": "i9j0k1l2hash",
+        "tags": ["Feriado"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "placeholder",
+        "responses": {
+          "200": {
+            "description": "Lista de feriados",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
