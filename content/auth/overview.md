@@ -1,12 +1,14 @@
 ## 🌐 1. Visão geral
 
-A **API Auth** é o serviço central de autenticação da SCI, responsável por emitir e renovar o token JWT utilizado por **todas as demais APIs da plataforma**.
+A **API Auth** é o serviço central de autenticação da SCI, responsável por emitir e renovar o **token JWT** que autoriza o acesso a **todas as APIs da SCI**.
+
+> [!NOTE]
+> **O que é o Token JWT?**  
+> É uma chave de acesso temporária enviada no cabeçalho das requisições (`Authorization: Bearer <token>`) para autenticar chamadas de forma segura.
 
 > [!TIP]
-> **Autenticação Global:** Ao autenticar nesta documentação interativa, o portal armazena e aplica automaticamente o cabeçalho `Authorization: Bearer <token>` em todas as demais abas. Não é necessário copiar e colar tokens ao navegar pelo portal.
->
-> * **Para autenticar:** Acesse a rota [Gerar JWT](#auth/tag/autenticação/POST/api/v1/auth/credencial/login), selecione a opção **"Gerar JWT"** no painel *Authentication*, informe suas credenciais e clique em **Send**.
-> * **Para renovar:** Acesse a rota [Atualizar JWT](#auth/tag/autenticação/POST/api/v1/auth/refresh), selecione a opção **"Atualizar JWT"** no painel *Authentication*, confirme o token atual e clique em **Send**.
+> **Autenticação Global no Portal:**  
+> Ao autenticar nesta página, o portal aplica automaticamente o cabeçalho `Authorization: Bearer <token>` em **todas as APIs do portal**.
 
 ---
 
@@ -87,7 +89,7 @@ Estenda o tempo de acesso da sua aplicação sem a necessidade de retransmitir a
 | :--- | :--- |
 | **Endpoint** | [`POST /api/v1/auth/refresh`](#auth/tag/autenticação/POST/api/v1/auth/refresh) |
 | **Tipo**| Bearer Auth |
-| **Conteúdo** | (`Authorization: Bearer <token_atual>`) |
+| **Conteúdo** | `Bearer <token_atual>` |
 | **Validade** | `3600` segundos |
 | **Resposta** | Status `200 OK` |
 
