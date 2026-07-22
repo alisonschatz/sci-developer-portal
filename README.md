@@ -136,11 +136,3 @@ npm run build:content[:hml] # só o build (specs + conteúdo + portal.config.jso
 npm run clean               # limpa os arquivos gerados
 npm test                    # 78 testes (node:test, sem rede)
 ```
-
-## Deploy
-
-**Produção** — `.github/workflows/deploy-prod.yml`: push na `main` → testes → fetch de produção → build → GitHub Pages. Secrets necessários: um `<ID>_SERVER_URL` por API (`npm run env` lista todos).
-
-**Homologação** — `.github/workflows/deploy-hml.yml` é um placeholder para o DevOps implementar. O código já está pronto: `npm run api:sync:hml` gera o portal apontando para as APIs de homologação (variáveis `<ID>_SERVER_URL_HML`), com o título marcando "(Homologação)" — nenhuma mudança de código será necessária.
-
-Detalhes de decisões e trade-offs: `docs/arquitetura.md`.
