@@ -8,9 +8,7 @@ const { findPreScrollSiblings, computeStickyOffsetHeight } = await import(
   '../src/composables/useSidebarStickyOffset.js'
 );
 
-/** Cria um elemento com uma altura "fake" (happy-dom não faz layout de
- *  verdade — getBoundingClientRect sempre voltaria 0 — então simulamos
- *  o valor que um navegador real reportaria). */
+/** Retorna um elemento com a propriedade getBoundingClientRect simulada. */
 function elWithHeight(height, className) {
   const el = document.createElement('div');
   if (className) el.className = className;
@@ -32,7 +30,7 @@ function buildSidebarStructure({ withScrollArea = true } = {}) {
   if (withScrollArea) {
     const scrollArea = elWithHeight(1000, 'custom-scroll');
     aside.appendChild(scrollArea);
-    const afterScroll = elWithHeight(20); // ex.: footer — não deveria contar
+    const afterScroll = elWithHeight(20);
     aside.appendChild(afterScroll);
   }
 
@@ -53,8 +51,6 @@ test('computeStickyOffsetHeight soma a altura de brand + seletor + busca, ignora
 
   const height = computeStickyOffsetHeight(brand);
 
-  // 48 (brand) + 32 (seletor) + 36 (busca) = 116 — NÃO inclui a área de
-  // scroll (1000) nem o que vem depois dela (20).
   assert.equal(height, 116);
 });
 
