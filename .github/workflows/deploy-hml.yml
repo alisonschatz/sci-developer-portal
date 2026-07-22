@@ -1,5 +1,4 @@
-# Deploy de HOMOLOGAÇÃO — a implementar (responsabilidade do DevOps
-# após a validação do projeto).
+# Deploy de HOMOLOGAÇÃO — a implementar
 #
 # O projeto já suporta o ambiente sem nenhuma mudança de código:
 #   npm run api:sync:hml   → fetch + build apontando pras APIs de
