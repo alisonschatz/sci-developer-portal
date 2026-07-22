@@ -118,7 +118,6 @@ test('loadContent lê o formato de pastas da API auth real (sem postResponseScri
   assert.equal(content.operations['POST /api/v1/auth/credencial/login'].summary, 'Gerar token JWT');
   assert.equal(content.operations['POST /api/v1/auth/refresh'].summary, 'Atualizar token JWT');
   assert.deepEqual(content.warnings, [], 'conteúdo real não deveria gerar nenhum aviso');
-  // v2: o compartilhamento de token é do plugin, nunca de scripts no spec.
   const serialized = JSON.stringify(content);
   assert.equal(serialized.includes('postResponseScript'), false);
   assert.equal(serialized.includes('pm.globals'), false);
@@ -139,17 +138,14 @@ test('loadContent: exemplo .example.json pareado pelo nome do .md; frontmatter f
   const dir = path.join(tmp, 'content', 'minha-api', 'operations');
   fs2.mkdirSync(dir, { recursive: true });
 
-  // Operação válida com exemplo pareado
   fs2.writeFileSync(
     path.join(dir, 'listar.md'),
     '---\noperation: GET /api/v1/coisas\nsummary: Listar coisas\n---\n\nDescrição da listagem.'
   );
   fs2.writeFileSync(path.join(dir, 'listar.example.json'), '{"nome": "Exemplo Sintético"}');
 
-  // .md sem frontmatter → aviso, ignorado
   fs2.writeFileSync(path.join(dir, 'quebrado.md'), 'Só corpo, sem cabeçalho.');
 
-  // exemplo órfão (sem .md do mesmo nome) → aviso, ignorado
   fs2.writeFileSync(path.join(dir, 'orfao.example.json'), '{"a": 1}');
 
   const content = loadContent('minha-api', tmp);
@@ -170,12 +166,9 @@ test('integração: transformSpec com o conteúdo real da auth produz um spec fi
   assert.equal(out.paths['/api/v1/auth/credencial/login'].post.summary, 'Gerar token JWT');
   assert.equal(out.paths['/api/v1/auth/refresh'].post.summary, 'Atualizar token JWT');
   assert.ok(out.tags.find((t) => t.name === 'Autenticação').description.includes('token JWT'));
-  // O security requirement de cada operação vem intacto do spec de origem.
   assert.deepEqual(out.paths['/api/v1/auth/credencial/login'].post.security, [{ 'Gerar JWT': [] }]);
   assert.deepEqual(out.paths['/api/v1/auth/refresh'].post.security, [{ 'Atualizar JWT': [] }]);
 });
-
-// ═══════════ Capacidades completas de personalização ═══════════
 
 test('applyInfo renomeia a API (title) e a versão exibida', () => {
   const out = applyInfo({ info: { title: 'Orig', version: '1.0' } }, { title: 'API Renomeada', version: '2.5' });
@@ -356,19 +349,16 @@ test('loadContent: renameTo em security/*.md é recusado com aviso (quebraria pr
   fs.writeFileSync(path.join(base, 's.md'), '---\nscheme: Gerar JWT\nrenameTo: Outro Nome\n---\n\nDesc.');
 
   const content = loadContent('x', tmp);
-  assert.ok(content.warnings.some((w) => w.includes('renomear security scheme não é suportado')));
+  assert.ok(content.warnings.some((w) => w.includes('"renameTo" em security schemes não é suportado')));
   assert.equal(content.security['Gerar JWT'].description, 'Desc.');
 
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-// ═══════════ Resolução automática de securityScheme ═══════════
-
 test('resolveSecurityScheme: exatamente 1 bearer no spec → resolve sozinho', async () => {
   const { resolveSecurityScheme } = await import('../scripts/build-content.js');
   const spec = { components: { securitySchemes: { meuBearer: { type: 'http', scheme: 'bearer' }, basico: { type: 'http', scheme: 'basic' } } } };
   assert.equal(resolveSecurityScheme({ id: 'x', securityScheme: 'auto' }, spec), 'meuBearer');
-  // Nome explícito passa direto, sem detecção
   assert.equal(resolveSecurityScheme({ id: 'x', securityScheme: 'fixo' }, spec), 'fixo');
 });
 
@@ -376,11 +366,11 @@ test('resolveSecurityScheme: 0 ou vários bearers → erro listando os nomes dis
   const { resolveSecurityScheme } = await import('../scripts/build-content.js');
   assert.throws(
     () => resolveSecurityScheme({ id: 'x', securityScheme: 'auto' }, { components: { securitySchemes: { a: { type: 'apiKey' } } } }),
-    /nenhum scheme HTTP bearer.*Schemes disponíveis: a/s
+    /Nenhum esquema HTTP bearer encontrado no spec.*Disponíveis: a/s
   );
   assert.throws(
     () => resolveSecurityScheme({ id: 'x', securityScheme: 'auto' }, { components: { securitySchemes: { b1: { type: 'http', scheme: 'bearer' }, b2: { type: 'http', scheme: 'bearer' } } } }),
-    /2 schemes bearer.*b1, b2/s
+    /Múltiplos esquemas bearer encontrados.*b1, b2/s
   );
 });
 

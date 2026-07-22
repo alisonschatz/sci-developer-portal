@@ -25,7 +25,6 @@ test('getDocsUrl deriva a URL do spec da env var + docsPath padrão (não existe
   const fakeEnv = { AUTH_SERVER_URL: 'https://api-auth.sci.com.br', X_SERVER_URL: 'https://x/' };
   const auth = apis.find((a) => a.id === 'auth');
   assert.equal(getDocsUrl(auth, 'production', fakeEnv), `https://api-auth.sci.com.br${DOCS_PATH_DEFAULT}`);
-  // docsPath customizado respeitado + barra final da URL normalizada
   assert.equal(getDocsUrl({ id: 'x', docsPath: '/openapi.json' }, 'production', fakeEnv), 'https://x/openapi.json');
 });
 
@@ -64,13 +63,13 @@ test('validação: "auto" proibido dentro de securitySchemes', () => {
     authOk,
     { id: 'auto-errado', slug: 'auto-errado', securitySchemes: [{ name: 'auto' }] },
   ]);
-  assert.ok(errors.some((e) => e.includes("'auto' não vale dentro de securitySchemes")));
+  assert.ok(errors.some((e) => e.includes("'auto' não é válido dentro de securitySchemes")));
 });
 
 test('validação: API não-auth sem scheme nenhum é erro (token não seria plugado)', () => {
   const authOk = { id: 'auth', slug: 'auth', isAuthProvider: true, tokenResponseField: 't', default: true, securitySchemes: [{ name: 'S' }] };
   const errors = validateManifest([authOk, { id: 'x', slug: 'x' }]);
-  assert.ok(errors.some((e) => e.includes('não seria plugado')));
+  assert.ok(errors.some((e) => e.includes('não define securityScheme nem securitySchemes')));
 });
 
 test('sanity: toda API real tem content/<id>/ com overview.md e as pastas', async () => {

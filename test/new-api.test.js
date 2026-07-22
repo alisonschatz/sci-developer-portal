@@ -13,7 +13,7 @@ test('insertApiBlock insere antes do marcador, preservando o marcador pra próxi
 });
 
 test('insertApiBlock lança com instrução manual se o marcador sumiu', () => {
-  assert.throws(() => insertApiBlock('sem marcador', 'x'), /cole o bloco manualmente/);
+  assert.throws(() => insertApiBlock('sem marcador', 'x'), /Marcador de inserção não encontrado em apis.config.js/);
 });
 
 test('o apis.config.js real ainda contém o marcador de inserção', () => {
