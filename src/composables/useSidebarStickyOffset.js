@@ -1,15 +1,8 @@
 import { onMounted, onBeforeUnmount } from 'vue';
 
 /**
- * Retorna os elementos irmãos que vêm ANTES do primeiro `.custom-scroll`
- * dentro do pai de `rootEl` — ou seja, tudo que fica fixo (não rolável)
- * acima da lista de navegação da sidebar. `.custom-scroll` é a classe
- * que o Scalar usa no contêiner rolável (confirmado em
- * node_modules/@scalar/components, reutilizada em vários componentes
- * deles — por isso a busca é escopada a `:scope > .custom-scroll`,
- * filhos diretos do mesmo pai, não a página inteira).
- *
- * Pura e sem Vue — testável diretamente em test/sidebar-sticky-offset.test.js.
+ * Retorna os elementos irmãos anteriores ao contêiner rolável (.custom-scroll)
+ * dentro do mesmo elemento pai de `rootEl`.
  */
 export function findPreScrollSiblings(rootEl) {
   const parent = rootEl?.parentElement;
@@ -26,7 +19,7 @@ export function findPreScrollSiblings(rootEl) {
   return siblings.length > 0 ? siblings : [rootEl];
 }
 
-/** Soma a altura de todos os elementos retornados por findPreScrollSiblings. */
+/** Soma a altura total dos elementos que antecedem o contêiner rolável. */
 export function computeStickyOffsetHeight(rootEl) {
   const targets = findPreScrollSiblings(rootEl);
   const total = targets.reduce((sum, el) => sum + el.getBoundingClientRect().height, 0);
@@ -34,11 +27,8 @@ export function computeStickyOffsetHeight(rootEl) {
 }
 
 /**
- * Composable Vue: mede e publica `--scalar-sidebar-sticky-offset`
- * (usada pelos cabeçalhos de grupo sticky dentro da árvore de
- * navegação do Scalar — ver comentário em findPreScrollSiblings) toda
- * vez que algum dos elementos "fixos acima do scroll" mudar de
- * tamanho.
+ * Composable que monitora a dimensão dos elementos fixos superiores da sidebar
+ * e atualiza a variável CSS configurada com a altura acumulada.
  *
  * @param {import('vue').Ref<HTMLElement|null>} rootElRef
  * @param {string} cssVariable
@@ -60,8 +50,6 @@ export function useSidebarStickyOffset(rootElRef, cssVariable = '--scalar-sideba
 
   onBeforeUnmount(() => {
     resizeObserver?.disconnect();
-    // Não deixa a variável "presa" num valor antigo se este componente
-    // algum dia for desmontado condicionalmente.
     document.documentElement.style.removeProperty(cssVariable);
   });
 }

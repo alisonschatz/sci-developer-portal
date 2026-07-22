@@ -1,21 +1,15 @@
 import { syncTokenToStorage, getTokenStorageTargets } from './token-storage.js';
 
 /**
- * Plugin de token compartilhado — API OFICIAL de plugins do Scalar
- * (ClientPlugin hooks beforeRequest/responseReceived), parametrizado
- * pelo portal.config.json resolvido (nada de importar o manifesto:
- * autoria e runtime são camadas separadas).
+ * Plugin de token compartilhado para o Scalar (ClientPlugin).
  *
- * - responseReceived: captura o JWT de respostas OK do server da Auth.
- * - beforeRequest: injeta `Authorization: Bearer <token>` nas chamadas
- *   às APIs consumidoras — só se o header estiver ausente/vazio/com o
- *   placeholder não resolvido; valor manual nunca é sobrescrito.
+ * - responseReceived: captura o token de autenticação nas respostas da API de auth.
+ * - beforeRequest: injeta o cabeçalho Authorization com o token atual nas requisições.
  */
 
 const AUTH_HEADER = 'Authorization';
 
-/** Servers que recebem o token via Bearer — derivado do config resolvido.
- *  Inclui a própria Auth quando algum scheme dela tem prefill de token. */
+/** Retorna a lista de servidores configurados para receber o token via Bearer. */
 export function getBearerTokenConsumerServers(portalConfig) {
   const servers = [];
   for (const api of portalConfig.apis) {
@@ -70,7 +64,7 @@ export function createSciTokenClientPlugin({
             requestBuilder.headers.set(AUTH_HEADER, `Bearer ${state.token}`);
           }
         } catch {
-          /* nunca quebra uma requisição de verdade */
+          // Trata eventuais falhas sem interromper a requisição
         }
       },
 
@@ -90,7 +84,7 @@ export function createSciTokenClientPlugin({
             })
             .catch(() => {});
         } catch {
-          /* nunca quebra o fluxo de resposta */
+          // Trata eventuais falhas no parse do token
         }
       },
     },
@@ -99,8 +93,7 @@ export function createSciTokenClientPlugin({
   return { clientPlugin, state };
 }
 
-/** ApiReferencePlugin (formato documentado) que embrulha o ClientPlugin
- *  acima — é ESTE que entra em configuration.plugins. */
+/** Retorna o ApiReferencePlugin configurado para registro em configuration.plugins. */
 export function createSciPortalPlugin(options) {
   const { clientPlugin, state } = createSciTokenClientPlugin(options);
   const plugin = () => () => ({

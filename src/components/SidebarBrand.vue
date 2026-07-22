@@ -5,10 +5,8 @@ import { useSidebarStickyOffset } from '../composables/useSidebarStickyOffset.js
 const rootEl = ref(null);
 const logoFailed = ref(false);
 
-// Mede tudo que fica fixo acima da lista rolável da sidebar (este bloco
-// + seletor de documentos + busca) e publica em
-// --scalar-sidebar-sticky-offset — ver
-// src/composables/useSidebarStickyOffset.js para o porquê e os testes.
+// Calcula a altura acumulada dos elementos fixos acima da navegação
+// e atualiza a variável CSS --scalar-sidebar-sticky-offset.
 useSidebarStickyOffset(rootEl);
 </script>
 
@@ -26,26 +24,8 @@ useSidebarStickyOffset(rootEl);
 </template>
 
 <style scoped>
-/*
- * Usa as próprias CSS vars de sidebar do Scalar (--scalar-sidebar-*) em
- * vez das vars de marca (--sci-*) diretamente, com fallback para elas —
- * assim, se o tema do Scalar mudar de paleta (claro/escuro, ou o preset
- * `theme` na configuration), este bloco acompanha automaticamente e
- * continua parecendo parte nativa da sidebar, não uma caixa colada.
- */
-/*
- * O <aside> real da sidebar do Scalar é um único flex container
- * (flex-direction: column) — confirmado em
- * node_modules/@scalar/components/dist/components/ScalarSidebar/ScalarSidebar.vue.script.js.
- * TODOS os itens (seletor de documentos, busca, este bloco via
- * sidebar-start, a árvore de navegação) são filhos diretos dele, sem
- * nenhuma div extra entre eles — e o Scalar sempre renderiza o
- * conteúdo de `sidebar-start` DEPOIS do seletor e da busca (ordem fixa
- * no template deles, não é configurável por prop). `order: -1` aqui
- * reordena só visualmente (a árvore de acessibilidade/DOM não muda) pra
- * este bloco vir antes dos dois, sem precisar de nenhum CSS global nem
- * tocar em nada do Scalar.
- */
+/* Prioriza variáveis do Scalar com fallback para as variáveis da marca */
+/* Move o bloco de marca para o topo do container flex da sidebar */
 .sidebar-brand {
   order: -1;
   display: flex;

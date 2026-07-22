@@ -1,17 +1,6 @@
 /**
- * Escrita direta na persistência de auth do Scalar (localStorage) —
- * confirmado no código-fonte deles:
- *   chave:   `scalar-reference-auth-<slug>`
- *   formato: secrets[scheme] = { type: 'http', 'x-scalar-secret-token',
- *            'x-scalar-secret-username', 'x-scalar-secret-password' }
- *   selected.document = { selectedIndex, selectedSchemes }
- *
- * Por quê: o Scalar só RELÊ essa chave ao ativar um documento (trocar
- * de aba/recarregar) — escrever aqui faz o campo aparecer preenchido de
- * verdade na próxima ativação. O guard no setItem cobre a corrida com o
- * autosave interno do Scalar (que senão apagava o token). Tudo
- * parametrizado pelo portal.config.json resolvido — este módulo não
- * importa o manifesto de autoria.
+ * Utilitários para persistência e sincronização de credenciais de autenticação
+ * no armazenamento local (localStorage) utilizado pelo Scalar.
  */
 
 const AUTH_KEY_PREFIX = 'scalar-reference-auth';
@@ -44,7 +33,7 @@ export function writeTokenToScheme(storage, slug, schemeName, token) {
   storage.setItem(authStorageKey(slug), JSON.stringify(updated));
 }
 
-/** (slug, schemeName) que recebem o token — derivado das APIs RESOLVIDAS. */
+/** Retorna a lista de alvos (slug e nome do esquema) que recebem o token. */
 export function getTokenStorageTargets(resolvedApis) {
   const targets = [];
   for (const api of resolvedApis) {
@@ -65,12 +54,12 @@ export function syncTokenToStorage(storage, token, targets) {
     try {
       writeTokenToScheme(storage, slug, schemeName, token);
     } catch {
-      /* complemento, não crítico */
+      // Trata eventuais falhas sem interromper o fluxo
     }
   }
 }
 
-/** Documentos com mais de 1 scheme (hoje, só a Auth). */
+/** Retorna os documentos que possuem múltiplos esquemas de segurança. */
 export function getMultiSchemeDocuments(resolvedApis) {
   return resolvedApis
     .filter((api) => Array.isArray(api.securitySchemes) && api.securitySchemes.length > 1)
@@ -96,15 +85,14 @@ export function ensureDocumentSelectedSchemes(storage, slug, schemeNames) {
   storage.setItem(authStorageKey(slug), JSON.stringify(updated));
 }
 
-/** Autocura a cada carga da página: o topo do documento Auth sempre com
- *  os dois schemes disponíveis (trade-off decidido — ver arquitetura). */
+/** Garante a seleção dos esquemas configurados nos documentos com múltiplos esquemas. */
 export function ensureAllMultiSchemeSelections(storage, multiSchemeDocuments) {
   if (!storage || !Array.isArray(multiSchemeDocuments)) return;
   for (const { slug, schemeNames } of multiSchemeDocuments) {
     try {
       ensureDocumentSelectedSchemes(storage, slug, schemeNames);
     } catch {
-      /* nunca impede o app de montar */
+      // Trata falhas na configuração inicial dos esquemas
     }
   }
 }
@@ -128,15 +116,11 @@ export function mergeTokenIntoSerializedEntry(rawValue, schemeNames, token) {
   return JSON.stringify({ ...entry, secrets });
 }
 
-/** Flag de idempotência em memória (WeakSet) — NUNCA uma propriedade no
- *  storage: num navegador real, `storage.prop = x` vira uma entrada de
- *  verdade e sobrevive a reload (bug real da v1). */
 const guardedStorages = new WeakSet();
 
 /**
- * Intercepta storage.setItem: depois de QUALQUER escrita nas chaves de
- * auth relevantes (inclusive o autosave debounced do próprio Scalar,
- * que não sabe do nosso token), reaplica o token por cima na hora.
+ * Intercepta o método `storage.setItem` para reaplicar o token de autenticação
+ * atualizado sempre que houver persistência nas chaves de autenticação do Scalar.
  */
 export function installTokenStorageGuard(storage, state, targets) {
   if (!storage || typeof storage.setItem !== 'function' || guardedStorages.has(storage)) {
@@ -144,9 +128,9 @@ export function installTokenStorageGuard(storage, state, targets) {
   }
 
   try {
-    if (typeof storage.removeItem === 'function') storage.removeItem('__tokenBridgeGuardInstalled'); // limpeza v1
+    if (typeof storage.removeItem === 'function') storage.removeItem('__tokenBridgeGuardInstalled');
   } catch {
-    /* cortesia */
+    // Trata remoção de chaves legadas
   }
 
   const originalSetItem = storage.setItem.bind(storage);

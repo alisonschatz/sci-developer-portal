@@ -2,14 +2,15 @@
 node_modules/
 dist/
 
-# Segredos — URLs internas vivem só aqui (local) e nos secrets (CI)
+# Variáveis de ambiente
 .env
 
-# Gerados pelo pipeline (fetch + build:content) — regenerados sempre
+# Arquivos gerados pelo build
 src/base/*
 !src/base/.gitkeep
 public/openapi/*
 !public/openapi/.gitkeep
 public/portal.config.json
 
+# Sistema operacional
 .DS_Store

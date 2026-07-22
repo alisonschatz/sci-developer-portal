@@ -2,12 +2,15 @@
 scheme: NomeExatoDoScheme
 ---
 
-Arquivos que começam com `_` são ignorados pelo build — este é só um modelo.
+Descreva aqui as instruções de autenticação referentes a este esquema. O conteúdo do corpo é exibido no painel de Autenticação da documentação.
 
-O corpo vira a descrição do security scheme — o texto que aparece no
-painel de Authentication do portal. O `scheme:` precisa bater EXATAMENTE
-com o nome em components.securitySchemes do spec.
+### Orientações
 
-Renomear um scheme NÃO é suportado de propósito: o nome participa do
-prefill do token (apis.config.js) e dos security requirements de cada
-operação — renomear quebraria os dois silenciosamente.
+1. **Nome do Esquema (`scheme`):**
+   Deve corresponder **exatamente** ao nome declarado em `components.securitySchemes` na especificação OpenAPI da API.
+
+2. **Alteração de Nome:**
+   A renomeação do esquema não é suportada via override, pois o nome é utilizado nas configurações de pré-preenchimento de tokens e nos requisitos de segurança das operações.
+
+---
+*Nota: Arquivos iniciados com `_` funcionam como modelos/rascunhos e são ignorados no build.*

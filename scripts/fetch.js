@@ -4,15 +4,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { apis, getDocsUrl, ENVIRONMENTS } from '../apis.config.js';
 
 /**
- * Baixa o spec bruto de cada API do ambiente escolhido e grava em
- * src/base/openapi-<id>.json, após o filtro de segurança (blacklist).
- *
- * Ambiente:  node scripts/fetch.js [production|homolog]
- *            (ou PORTAL_ENV=homolog; padrão: production)
- *
- * A URL de docs é SEMPRE derivada: <serverUrl><docsPath> — não existe
- * URL de docs separada pra configurar. As URLs base vêm de variáveis de
- * ambiente (<ID>_SERVER_URL / <ID>_SERVER_URL_HML) — `npm run env`.
+ * Baixa as especificações OpenAPI brutas das APIs configuradas
+ * e aplica o filtro de rotas/operações internas.
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -44,11 +37,10 @@ export function isBlacklisted(routePath) {
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
 
 /**
- * Remove do spec tudo que o backend marcou como interno:
- *   1. rotas que batem na blacklist de padrões (admin/internal/debug/...)
- *   2. path items com `x-internal: true` (a rota inteira)
- *   3. operações individuais com `x-internal: true`
- * Retorna { spec, removed } (contagem de rotas + operações removidas).
+ * Remove do spec as rotas e operações marcadas como internas:
+ * 1. Padrões da blacklist de URLs.
+ * 2. Objetos de rota marcados com `x-internal: true`.
+ * 3. Operações individuais marcadas com `x-internal: true`.
  */
 export function filterInternalRoutes(spec) {
   if (!spec.paths) return { spec, removed: 0 };
@@ -63,7 +55,6 @@ export function filterInternalRoutes(spec) {
     if (internalOps.length > 0) {
       item = { ...item };
       for (const m of internalOps) { delete item[m]; removed += 1; }
-      // rota sem nenhuma operação restante some junto
       if (!HTTP_METHODS.some((m) => item[m])) continue;
     }
     paths[routePath] = item;

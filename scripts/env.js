@@ -19,7 +19,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export function buildEnvTemplate(entries = apis) {
   const lines = [
     '# Gerado a partir de apis.config.js — `npm run env` regenera/sincroniza.',
-    '# O .env NUNCA é commitado (.gitignore).',
     '',
   ];
   for (const api of entries) {

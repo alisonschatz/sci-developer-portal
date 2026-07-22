@@ -6,55 +6,25 @@ import { apis, validateManifest, getServerUrl, SHARED_TOKEN_VARIABLE } from '../
 import { resolveEnvironment } from './fetch.js';
 
 /**
- * Combina cada spec bruto (src/base/openapi-<id>.json) com o conteúdo
- * editorial de content/<id>/ e grava o resultado em
- * public/openapi/<id>.json — o arquivo que o portal serve.
+ * Mescla as especificações OpenAPI brutas (src/base/openapi-<id>.json)
+ * com o conteúdo editorial em content/<id>/ e grava o resultado em public/openapi/<id>.json.
  *
- * O QUE É PERSONALIZÁVEL (referência completa — tudo opcional):
+ * Estrutura aceita em content/<id>/:
+ * - overview.md: frontmatter (title, version) e descrição geral da API.
+ * - tags/*.md: overrides de tags (tag, renameTo, hide e descrição).
+ * - operations/*.md: overrides de operações (operation, summary, hide, deprecated, moveToTag, parameters e descrição).
+ * - operations/*.example.json: exemplos de payload de requisição.
+ * - operations/*.response-<status>.example.json: exemplos de respostas por status HTTP.
+ * - security/*.md: descrições dos esquemas de autenticação (scheme e corpo).
  *
- * content/<id>/overview.md
- *   frontmatter: title (renomeia a API), version (versão exibida)
- *   corpo:       info.description (a página inicial da API)
- *
- * content/<id>/tags/<nome-livre>.md
- *   frontmatter: tag (obrigatório — nome EXATO no spec)
- *                renameTo (novo nome exibido — atualiza a lista de tags
- *                          E toda operação que referencia a tag)
- *                hide: true (esconde a tag E todas as operações dela)
- *   corpo:       descrição da tag
- *
- * content/<id>/operations/<nome-livre>.md
- *   frontmatter: operation (obrigatório — "MÉTODO /caminho")
- *                summary (título exibido)
- *                hide: true (esconde a operação da documentação)
- *                deprecated: true (marca como descontinuada)
- *                moveToTag (move a operação pra outra tag — cria a tag
- *                           se ela não existir no spec)
- *                parameters: mapa nome-do-parâmetro → descrição
- *   corpo:       descrição da operação
- *
- * content/<id>/operations/<mesmo-nome>.example.json
- *   → exemplo de corpo de REQUISIÇÃO da operação do .md de mesmo nome
- *
- * content/<id>/operations/<mesmo-nome>.response-<status>.example.json
- *   → exemplo de RESPOSTA para aquele status (ex.: .response-200.example.json)
- *
- * content/<id>/security/<nome-livre>.md
- *   frontmatter: scheme (obrigatório — nome EXATO em components.securitySchemes)
- *   corpo:       descrição do security scheme (o texto do painel de auth)
- *   (renomear scheme NÃO é suportado de propósito — o nome participa do
- *   prefill do manifesto e dos security requirements das operações;
- *   renomear quebraria os dois silenciosamente.)
- *
- * Arquivos começando com `_` são ignorados (rascunhos/modelos).
- * Erros editoriais nunca falham em silêncio — o build imprime avisos.
+ * Arquivos iniciados com "_" são ignorados.
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-// ═══════════════════ Funções puras (testáveis sem disco) ═══════════════════
+// --- Funções Utilitárias de Transformação ---
 
-/** Título/versão exibidos (frontmatter do overview.md). */
+/** Aplica title e version a partir do frontmatter de overview.md. */
 export function applyInfo(spec, info) {
   if (!info) return spec;
   const updated = { ...(spec.info || {}) };
@@ -63,21 +33,23 @@ export function applyInfo(spec, info) {
   return { ...spec, info: updated };
 }
 
-/** Corpo do overview.md → info.description. */
+/** Define a descrição geral da API (body do overview.md -> info.description). */
 export function applyOverview(spec, overviewMarkdown) {
   if (!overviewMarkdown || !overviewMarkdown.trim()) return spec;
   return { ...spec, info: { ...(spec.info || {}), description: overviewMarkdown } };
 }
 
-/** `servers` injetado quando o spec de origem não declara nenhum. */
+/** Injeta a URL do servidor caso a especificação original não declare nenhuma. */
 export function applyServers(spec, serverUrl) {
   if (!serverUrl) return spec;
   if (Array.isArray(spec.servers) && spec.servers.length > 0) return spec;
   return { ...spec, servers: [{ url: serverUrl }] };
 }
 
-/** Itera operações de spec.paths chamando fn(pathKey, method, operation)
- *  → retorno não-nulo substitui a operação; `REMOVE` a exclui. */
+/**
+ * Mapeia as operações declaradas em spec.paths aplicando a função de callback.
+ * O retorno Symbol('remove') exclui a operação.
+ */
 const REMOVE = Symbol('remove');
 function mapOperations(spec, fn) {
   if (!spec.paths) return spec;
@@ -98,7 +70,7 @@ function mapOperations(spec, fn) {
 
 const opKey = (pathKey, method) => `${method.toUpperCase()} ${pathKey}`;
 
-/** hide: true em operations/*.md → operação removida da documentação. */
+/** Remove operações marcadas com hide: true. */
 export function applyOperationVisibility(spec, operations) {
   if (!operations) return spec;
   return mapOperations(spec, (pathKey, method) => {
@@ -107,7 +79,7 @@ export function applyOperationVisibility(spec, operations) {
   });
 }
 
-/** moveToTag → operação reatribuída; a tag destino é criada se não existir. */
+/** Move a operação para outra tag (cria a tag no spec caso não exista). */
 export function applyOperationMoves(spec, operations) {
   if (!operations) return spec;
   const createdTags = new Set();
@@ -126,7 +98,7 @@ export function applyOperationMoves(spec, operations) {
   return { ...result, tags };
 }
 
-/** summary/description/deprecated/parameters por operação. */
+/** Aplica overrides de summary, description, status de descontinuação e parâmetros. */
 export function applyOperationOverrides(spec, operations) {
   if (!operations) return spec;
   return mapOperations(spec, (pathKey, method, operation) => {
@@ -145,7 +117,7 @@ export function applyOperationOverrides(spec, operations) {
   });
 }
 
-/** Exemplo de corpo de REQUISIÇÃO por operação. */
+/** Injeta exemplos de corpo de requisição na operação. */
 export function applyExamples(spec, examples) {
   if (!examples) return spec;
   return mapOperations(spec, (pathKey, method, operation) => {
@@ -157,7 +129,7 @@ export function applyExamples(spec, examples) {
   });
 }
 
-/** Exemplos de RESPOSTA por operação e status. */
+/** Injeta exemplos de respostas por código de status HTTP. */
 export function applyResponseExamples(spec, responseExamples) {
   if (!responseExamples) return spec;
   return mapOperations(spec, (pathKey, method, operation) => {
@@ -175,7 +147,7 @@ export function applyResponseExamples(spec, responseExamples) {
   });
 }
 
-/** hide: true em tags/*.md → a tag E todas as operações dela somem. */
+/** Oculta tags marcadas com hide: true e remove todas as suas operações vinculadas. */
 export function applyTagVisibility(spec, tagOverrides) {
   if (!tagOverrides) return spec;
   const hidden = new Set(Object.entries(tagOverrides).filter(([, e]) => e.hide === true).map(([name]) => name));
@@ -188,7 +160,7 @@ export function applyTagVisibility(spec, tagOverrides) {
   return result;
 }
 
-/** Descrição por tag. Tag sem entrada mantém a original. */
+/** Atualiza descrições de tags. Preserva a original se não houver override. */
 export function applyTagDescriptions(spec, tagOverrides) {
   if (!tagOverrides || !Array.isArray(spec.tags)) return spec;
   const tags = spec.tags.map((tag) => {
@@ -199,10 +171,10 @@ export function applyTagDescriptions(spec, tagOverrides) {
   return { ...spec, tags };
 }
 
-/** renameTo → novo nome na lista de tags E em toda operação que a
- *  referencia (as duas coisas juntas, senão as operações "somem" do
- *  grupo). Rodar por ÚLTIMO — todos os outros overrides referenciam o
- *  nome ORIGINAL do spec. */
+/**
+ * Renomeia tags e atualiza as referências em todas as operações.
+ * Deve ser executado por último, pois os demais overrides usam os nomes originais.
+ */
 export function applyTagRenames(spec, tagOverrides) {
   if (!tagOverrides) return spec;
   const renames = new Map(
@@ -224,8 +196,7 @@ export function applyTagRenames(spec, tagOverrides) {
   return result;
 }
 
-/** Remove tags que ficaram sem nenhuma operação (depois de hides/moves)
- *  — uma tag vazia vira uma seção vazia no portal. */
+/** Remove tags que não possuem nenhuma operação associada. */
 export function pruneEmptyTags(spec) {
   if (!Array.isArray(spec.tags) || !spec.paths) return spec;
   const used = new Set();
@@ -236,7 +207,7 @@ export function pruneEmptyTags(spec) {
   return { ...spec, tags: spec.tags.filter((t) => used.has(t.name)) };
 }
 
-/** Descrição por security scheme (o texto do painel de auth). */
+/** Atualiza descrições dos esquemas de segurança em components.securitySchemes. */
 export function applySecurityDescriptions(spec, security) {
   if (!security) return spec;
   const schemes = spec.components?.securitySchemes;
@@ -248,14 +219,16 @@ export function applySecurityDescriptions(spec, security) {
   return { ...spec, components: { ...spec.components, securitySchemes: updated } };
 }
 
-/** Pipeline completo. Ordem importa:
- *  1. servers/info/overview (documento)
- *  2. hides (operação, depois tag — tudo pelo nome ORIGINAL)
- *  3. moves (ainda pelo nome original)
- *  4. overrides de operação + exemplos (chaveados por caminho, imunes a rename)
- *  5. descrições de tag e de security (nome original)
- *  6. renames de tag (POR ÚLTIMO — muda os nomes que tudo acima usou)
- *  7. prune de tags vazias */
+/**
+ * Executa as transformações do spec em ordem sequencial:
+ * 1. Servidores, dados gerais e overview
+ * 2. Ocultação de operações e tags (nomes originais)
+ * 3. Reorganização de tags/operações
+ * 4. Overrides de detalhes das operações e exemplos
+ * 5. Descrições de tags e esquemas de segurança
+ * 6. Renomeação de tags
+ * 7. Limpeza de tags não utilizadas
+ */
 export function transformSpec(spec, content, { serverUrl } = {}) {
   let result = spec;
   result = applyServers(result, serverUrl);
@@ -274,8 +247,7 @@ export function transformSpec(spec, content, { serverUrl } = {}) {
   return result;
 }
 
-/** Denuncia overrides apontando pra coisas que não existem no spec —
- *  o erro editorial mais comum, que senão falharia em silêncio. */
+/** Mapeia e alerta sobre overrides configurados para elementos inexistentes no spec. */
 export function findOrphanOverrides(spec, content) {
   const warnings = [];
   const opExists = (key) => {
@@ -283,7 +255,7 @@ export function findOrphanOverrides(spec, content) {
     return Boolean(spec.paths?.[parts.join(' ')]?.[method.toLowerCase()]);
   };
   for (const key of Object.keys(content.operations || {})) {
-    if (!opExists(key)) warnings.push(`"${key}" não existe no spec — override ignorado (caminho ou método errado?).`);
+    if (!opExists(key)) warnings.push(`"${key}" não existe no spec — override ignorado.`);
   }
   for (const key of Object.keys(content.responseExamples || {})) {
     if (!opExists(key)) warnings.push(`"${key}" (exemplo de resposta) não existe no spec — ignorado.`);
@@ -291,7 +263,7 @@ export function findOrphanOverrides(spec, content) {
   if (content.tags && Array.isArray(spec.tags)) {
     const names = new Set(spec.tags.map((t) => t.name));
     for (const tagName of Object.keys(content.tags)) {
-      if (!names.has(tagName)) warnings.push(`Tag "${tagName}" não existe no spec — override ignorado (nome exato difere?).`);
+      if (!names.has(tagName)) warnings.push(`Tag "${tagName}" não existe no spec — override ignorado.`);
     }
   }
   if (content.security) {
@@ -300,7 +272,7 @@ export function findOrphanOverrides(spec, content) {
       if (!schemes.has(name)) warnings.push(`Security scheme "${name}" não existe no spec — override ignorado.`);
     }
   }
-  // Parâmetros referenciados que não existem na operação
+
   for (const [key, entry] of Object.entries(content.operations || {})) {
     if (!entry.parameters || !opExists(key)) continue;
     const [method, ...parts] = key.split(' ');
@@ -313,7 +285,7 @@ export function findOrphanOverrides(spec, content) {
   return warnings;
 }
 
-// ═══════════════════════════ Camada de disco ═══════════════════════════════
+// --- Leitura de Arquivos de Conteúdo ---
 
 export function parseFrontmatter(raw) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
@@ -339,7 +311,6 @@ export function loadContent(apiId, root = ROOT) {
       .map((f) => ({ file: `${subdir}/${f}`, full: path.join(full, f) }));
   };
 
-  // overview.md (frontmatter opcional: title, version)
   let overview = null;
   let info = null;
   const overviewPath = path.join(dir, 'overview.md');
@@ -350,13 +321,12 @@ export function loadContent(apiId, root = ROOT) {
     if (data && (data.title || data.version)) info = { title: data.title, version: data.version };
   }
 
-  // tags/*.md — description, renameTo, hide
   const tags = {};
   for (const { file, full } of listMd('tags')) {
     const { data, body, error } = parseFrontmatter(fs.readFileSync(full, 'utf8'));
     if (error) { warnings.push(`${file}: ${error} — ignorado.`); continue; }
     if (!data || !data.tag) {
-      warnings.push(`${file}: sem "tag:" no frontmatter — ignorado. (Comece com:\n---\ntag: NomeExatoDaTag\n---)`);
+      warnings.push(`${file}: sem "tag:" no frontmatter — ignorado.`);
       continue;
     }
     if (tags[data.tag]) warnings.push(`${file}: tag "${data.tag}" já definida em outro arquivo — este sobrescreve.`);
@@ -367,7 +337,6 @@ export function loadContent(apiId, root = ROOT) {
     tags[data.tag] = entry;
   }
 
-  // operations/*.md — summary, description, hide, deprecated, moveToTag, parameters
   const operations = {};
   const examples = {};
   const responseExamples = {};
@@ -376,7 +345,7 @@ export function loadContent(apiId, root = ROOT) {
     const { data, body, error } = parseFrontmatter(fs.readFileSync(full, 'utf8'));
     if (error) { warnings.push(`${file}: ${error} — ignorado.`); continue; }
     if (!data || !data.operation) {
-      warnings.push(`${file}: sem "operation:" no frontmatter — ignorado. (Comece com:\n---\noperation: MÉTODO /caminho\nsummary: Título curto\n---)`);
+      warnings.push(`${file}: sem "operation:" no frontmatter — ignorado.`);
       continue;
     }
     const key = data.operation;
@@ -391,7 +360,6 @@ export function loadContent(apiId, root = ROOT) {
     if (data.parameters && typeof data.parameters === 'object') entry.parameters = data.parameters;
     operations[key] = entry;
 
-    // pares .example.json (requisição) e .response-<status>.example.json (respostas)
     const base = full.replace(/\.md$/, '');
     const requestExamplePath = `${base}.example.json`;
     if (fs.existsSync(requestExamplePath)) {
@@ -414,27 +382,25 @@ export function loadContent(apiId, root = ROOT) {
     }
   }
 
-  // exemplos órfãos (o .md de mesmo nome é quem declara a operação)
   if (fs.existsSync(opsDir)) {
     for (const f of fs.readdirSync(opsDir)) {
       if (!f.endsWith('.example.json') || f.startsWith('_')) continue;
       const mdName = f.replace(/(\.response-\d{3})?\.example\.json$/, '.md');
       if (!fs.existsSync(path.join(opsDir, mdName))) {
-        warnings.push(`operations/${f}: não existe um "${mdName}" ao lado — exemplo ignorado (o .md é quem declara a operação).`);
+        warnings.push(`operations/${f}: arquivo "${mdName}" correspondente não encontrado — exemplo ignorado.`);
       }
     }
   }
 
-  // security/*.md — descrição por scheme
   const security = {};
   for (const { file, full } of listMd('security')) {
     const { data, body, error } = parseFrontmatter(fs.readFileSync(full, 'utf8'));
     if (error) { warnings.push(`${file}: ${error} — ignorado.`); continue; }
     if (!data || !data.scheme) {
-      warnings.push(`${file}: sem "scheme:" no frontmatter — ignorado. (Comece com:\n---\nscheme: NomeExatoDoScheme\n---)`);
+      warnings.push(`${file}: sem "scheme:" no frontmatter — ignorado.`);
       continue;
     }
-    if (data.renameTo) warnings.push(`${file}: renomear security scheme não é suportado (quebraria o prefill do manifesto e os security requirements) — "renameTo" ignorado.`);
+    if (data.renameTo) warnings.push(`${file}: "renameTo" em security schemes não é suportado e será ignorado.`);
     if (security[data.scheme]) warnings.push(`${file}: scheme "${data.scheme}" já definido em outro arquivo — este sobrescreve.`);
     if (body) security[data.scheme] = { description: body };
   }
@@ -452,13 +418,11 @@ export function loadContent(apiId, root = ROOT) {
   };
 }
 
-// ═══════════ Resolução automática (a parte "ou é automático ou não é") ═════
+// --- Resolução de Configurações ---
 
 /**
- * Resolve `securityScheme: 'auto'` lendo components.securitySchemes do
- * spec REAL baixado: exatamente 1 scheme HTTP bearer → esse é o nome.
- * 0 ou vários → lança com os nomes disponíveis, pra fixar explicitamente
- * no manifesto. Nunca "confira depois" — ou resolve, ou falha explicando.
+ * Resolve a propriedade `securityScheme: 'auto'` a partir dos esquemas declarados no spec.
+ * Dispara um erro caso haja zero ou múltiplos esquemas do tipo HTTP bearer.
  */
 export function resolveSecurityScheme(api, spec) {
   if (api.securityScheme !== 'auto') return api.securityScheme ?? null;
@@ -472,16 +436,16 @@ export function resolveSecurityScheme(api, spec) {
 
   const available = Object.keys(schemes);
   throw new Error(
-    `API "${api.id}": securityScheme 'auto' não conseguiu resolver — ` +
+    `API "${api.id}": não foi possível resolver securityScheme 'auto'. ` +
       (bearerNames.length === 0
-        ? `nenhum scheme HTTP bearer no spec.`
-        : `${bearerNames.length} schemes bearer no spec (${bearerNames.join(', ')}).`) +
-      ` Schemes disponíveis: ${available.length ? available.join(', ') : '(nenhum)'}. ` +
-      `Fixe o nome exato em apis.config.js.`
+        ? `Nenhum esquema HTTP bearer encontrado no spec.`
+        : `Múltiplos esquemas bearer encontrados (${bearerNames.join(', ')}).`) +
+      ` Disponíveis: ${available.length ? available.join(', ') : '(nenhum)'}. ` +
+      `Defina o nome exato em apis.config.js.`
   );
 }
 
-/** Entrada resolvida de uma API — tudo que o frontend precisa saber. */
+/** Retorna as propriedades resolvidas da API para o consumo da aplicação. */
 export function resolveApi(api, spec, environment) {
   const resolved = {
     id: api.id,
@@ -497,7 +461,7 @@ export function resolveApi(api, spec, environment) {
   return resolved;
 }
 
-/** O contrato completo consumido pelo frontend (public/portal.config.json). */
+/** Gera a estrutura final de configuração do portal (public/portal.config.json). */
 export function generatePortalConfig(resolvedApis, environment) {
   return {
     environment,

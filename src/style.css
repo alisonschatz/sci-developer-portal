@@ -1,6 +1,4 @@
-/* Paleta oficial SCI, exposta como CSS custom properties reutilizáveis
-   pelos componentes Vue do portal (SidebarBrand, TokenBanner) e para
-   alinhar o accent do próprio Scalar à marca. */
+/* Paleta de cores oficiais SCI */
 :root {
   --sci-navy: #38486c;
   --sci-blue: #91d8f7;
@@ -35,26 +33,14 @@ body {
   color: var(--sci-navy);
 }
 
-/* Alinha o accent do Scalar com a marca SCI, por cima do preset de tema
-   `theme: 'fastify'` (ver src/config/scalar.config.js) — que já vem com
-   seu próprio --scalar-color-accent verde (#2f8555).
-   Isso funciona de forma garantida, não por sorte de especificidade: o
-   CSS do preset de tema do Scalar é injetado dentro de uma @layer
-   (confirmado em node_modules/@scalar/themes/dist/index.js), e por
-   regra do CSS Cascade Layers, QUALQUER estilo fora de @layer sempre
-   vence um estilo dentro de @layer — independente de especificidade ou
-   ordem de carregamento. Como este arquivo não usa @layer, este bloco
-   sempre vence, em qualquer versão futura do preset. */
+/* Sobrescreve a cor de acento do tema do Scalar */
 .dark-mode,
 :root {
   --scalar-color-accent: var(--sci-navy);
 }
 
-/* ============================================================================
-   Ajuste de Tabelas (Prevenção de quebra de palavras e Alinhamento)
-   ============================================================================ */
+/* Formatacao e alinhamento de tabelas no Scalar */
 
-/* 1. Impede a quebra/corte de palavras no meio dentro das células e cabeçalhos */
 .scalar-api-reference table th,
 .scalar-api-reference table td {
   word-break: normal !important;
@@ -63,18 +49,15 @@ body {
   hyphens: none !important;
 }
 
-/* 2. Mantém a primeira coluna inteira em linha única (ex: "Token de Parceiro") */
 .scalar-api-reference table th:first-child,
 .scalar-api-reference table td:first-child {
   white-space: nowrap !important;
 }
 
-/* 3. Justifica o texto a partir da segunda coluna */
 .scalar-api-reference table td:nth-child(n+2) {
   text-align: justify !important;
 }
 
-/* 4. Se a tabela for mais larga que a coluna, permite rolagem horizontal suave */
 .scalar-api-reference table {
   display: block;
   width: 100%;

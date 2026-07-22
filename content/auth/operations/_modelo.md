@@ -1,22 +1,24 @@
 ---
 operation: GET /api/v1/exemplo
-summary: Título curto da operação
-# hide: true                          (esconde a operação da documentação)
-# deprecated: true                    (marca como descontinuada)
-# moveToTag: Outra Seção              (move pra outra tag — cria se não existir;
-#                                     use o nome ORIGINAL da tag destino)
-# parameters:                         (descrição por parâmetro, pelo nome)
-#   inicio: Data inicial no formato AAAA-MM-DD
-#   fim: Data final no formato AAAA-MM-DD
+summary: Título curto e claro da operação
+# Configurações opcionais de override:
+# hide: true                     # Oculta esta operação na documentação
+# deprecated: true               # Exibe o selo de operação descontinuada
+# moveToTag: NomeDaTag           # Reatribui a operação a outra tag (use o nome exato)
+# parameters:                    # Sobrescreve a descrição dos parâmetros por nome
+  # inicio: Data inicial no formato AAAA-MM-DD
+  # fim: Data final no formato AAAA-MM-DD
 ---
 
-Arquivos que começam com `_` são ignorados pelo build — este é só um modelo.
+Descreva aqui os detalhes da operação. O conteúdo do corpo é renderizado como a descrição principal em Markdown.
 
-O corpo vira a descrição da operação, em markdown puro.
+### Arquivos de Exemplo (Opcional)
 
-Arquivos pareados pelo MESMO nome deste `.md` (opcionais):
-- `<nome>.example.json`               → exemplo de corpo de REQUISIÇÃO
-- `<nome>.response-200.example.json`  → exemplo de RESPOSTA para o status 200
-  (qualquer status: .response-201, .response-400, ...)
+Para adicionar exemplos práticos de payloads, crie arquivos na mesma pasta mantendo o mesmo nome base deste `.md`:
 
-Sempre dados sintéticos, nunca reais (LGPD).
+- `<nome>.example.json`
+  Exemplo de corpo para requisições (body).
+- `<nome>.response-<status>.example.json`
+  Exemplo de resposta por código HTTP (ex.: `exemplo.response-200.example.json`, `exemplo.response-400.example.json`).
+
+> **Nota de Segurança:** Utilize apenas dados sintéticos (fictícios) nos arquivos de exemplo.

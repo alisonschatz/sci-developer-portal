@@ -2,9 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Limpa os arquivos locais gerados pelo pipeline (fetch + build),
- * deixando o repositório no estado de um checkout limpo. Preserva os
- * .gitkeep. Não apaga node_modules/dist de propósito.
+ * Remove os arquivos locais gerados pelo pipeline (fetch e build),
+ * preservando arquivos .gitkeep.
  */
 const targets = [
   { type: 'dir-content', path: 'src/base' },
@@ -24,6 +23,9 @@ for (const target of targets) {
 }
 for (const file of files) {
   const full = path.resolve(file);
-  if (fs.existsSync(full)) { fs.rmSync(full); console.log(`🗑️  Removido: ${file}`); }
+  if (fs.existsSync(full)) {
+    fs.rmSync(full);
+    console.log(`🗑️  Removido: ${file}`);
+  }
 }
 console.log('✨ Pronto!');

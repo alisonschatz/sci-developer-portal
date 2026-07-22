@@ -1,8 +1,6 @@
 /**
- * Monta a configuration do <ApiReference> a partir do portal.config.json
- * (o contrato resolvido pelo build — ambiente, schemes já detectados).
- * O frontend NÃO importa apis.config.js: autoria e runtime são camadas
- * separadas de propósito (ver docs/arquitetura.md).
+ * Constrói as configurações do <ApiReference> a partir da estrutura
+ * disponibilizada em portal.config.json.
  */
 
 export function buildScalarSources(portalConfig, baseUrl = '/') {
@@ -26,8 +24,6 @@ export function buildScalarSources(portalConfig, baseUrl = '/') {
         if (scheme.prefill) securitySchemes[scheme.name] = scheme.prefill;
       }
       source.authentication = {
-        // Nenhum preferido de propósito — cada operação usa o próprio
-        // security requirement dela (ver docs/arquitetura.md).
         preferredSecurityScheme: null,
         securitySchemes,
       };

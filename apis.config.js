@@ -1,38 +1,16 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════╗
- * ║  FONTE ÚNICA DA VERDADE DO PORTAL                                    ║
- * ║                                                                      ║
- * ║  Toda API é declarada aqui, e SÓ aqui. O build resolve o resto       ║
- * ║  (URLs de docs, security schemes) automaticamente e gera             ║
- * ║  public/portal.config.json — o contrato que o frontend consome.      ║
- * ║                                                                      ║
- * ║  API nova:  npm run api:new -- <id> "<Título>"                       ║
- * ╚══════════════════════════════════════════════════════════════════════╝
+ * Configuração central das APIs declaradas no portal.
  *
  * @typedef {object} ApiEntry
- * @property {string} id            kebab-case (vira nome de arquivo).
- * @property {string} title         Nome exibido no portal.
- * @property {string} slug          Slug de URL/storage. Normalmente = id.
- * @property {boolean} isAuthProvider  true SÓ na API que gera o token.
- *   (As URLs base por ambiente NÃO ficam aqui — vêm de variáveis de
- *   ambiente derivadas do id: <ID>_SERVER_URL e <ID>_SERVER_URL_HML.
- *   O spec é baixado de `<serverUrl><docsPath>`. Ver serverEnvVarName.)
- * @property {string} [docsPath]    Caminho do spec no server (padrão:
- *                                  DOCS_PATH_DEFAULT). Só defina se a API
- *                                  fugir do padrão da SCI.
- * @property {string|null} [securityScheme]
- *                                  'auto' (padrão recomendado): o build lê
- *                                  components.securitySchemes do spec baixado
- *                                  e resolve sozinho — exatamente 1 scheme
- *                                  HTTP bearer → usa; 0 ou vários → o build
- *                                  FALHA com os nomes disponíveis, pra você
- *                                  fixar explicitamente. Ou o nome exato.
- * @property {Array<{name: string, prefill?: object}>} [securitySchemes]
- *                                  Caso rico (hoje, só a auth) — nomes
- *                                  explícitos, nunca 'auto'.
- * @property {string} [tokenResponseField]  Só no auth provider: campo do JSON
- *                                  de resposta que contém o JWT.
- * @property {boolean} [default]    true na API que abre por padrão.
+ * @property {string} id Identificador único em kebab-case.
+ * @property {string} title Nome exibido na interface.
+ * @property {string} slug Slug para composição de URLs e chaves de armazenamento.
+ * @property {boolean} isAuthProvider Identifica se a API é a provedora do token de autenticação.
+ * @property {string} [docsPath] Caminho do spec OpenAPI no servidor (padrão: DOCS_PATH_DEFAULT).
+ * @property {string|null} [securityScheme] Esquema de segurança ('auto' para resolução automática ou o nome exato).
+ * @property {Array<{name: string, prefill?: object}>} [securitySchemes] Lista explícita de esquemas de segurança.
+ * @property {string} [tokenResponseField] Campo da resposta JSON que contém o token de autenticação.
+ * @property {boolean} [default] Define a API padrão exibida ao carregar o portal.
  */
 
 export const SHARED_TOKEN_VARIABLE = 'sci_auth_token';
@@ -48,7 +26,7 @@ export const apis = [
     isAuthProvider: true,
     securityScheme: null,
     securitySchemes: [
-      { name: 'Gerar JWT' }, // HTTP Basic — tokens de parceiro/cliente
+      { name: 'Gerar JWT' },
       { name: 'Atualizar JWT', prefill: { token: `{{${SHARED_TOKEN_VARIABLE}}}` } },
     ],
     tokenResponseField: 'token',
@@ -70,33 +48,30 @@ export function getAuthProvider() {
   return apis.find((api) => api.isAuthProvider);
 }
 
-/** Nome da variável de ambiente do server da API no ambiente dado —
- *  DERIVADO do id, nunca declarado: "rhnetsocial" → RHNETSOCIAL_SERVER_URL
- *  (produção) / RHNETSOCIAL_SERVER_URL_HML (homologação). As URLs vivem
- *  fora do código (.env local / secrets no CI) por segurança. */
+/** Retorna o nome da variável de ambiente que contém a URL base da API. */
 export function serverEnvVarName(apiId, environment = 'production') {
   const prefix = apiId.toUpperCase().replace(/-/g, '_');
   return environment === 'homolog' ? `${prefix}_SERVER_URL_HML` : `${prefix}_SERVER_URL`;
 }
 
-/** URL base da API no ambiente. Lança citando a variável exata se ausente. */
+/** Retorna a URL base do servidor da API para o ambiente especificado. */
 export function getServerUrl(api, environment = 'production', env = process.env) {
   const varName = serverEnvVarName(api.id, environment);
   const url = env[varName];
   if (!url) {
     throw new Error(
-      `API "${api.id}": variável de ambiente ${varName} não definida. ` +
-        `Local: copie .env.example para .env (npm run env:example regenera). CI: configure como secret.`
+      `API "${api.id}": variável de ambiente ${varName} não definida.`
     );
   }
   return url.replace(/\/$/, '');
 }
 
-/** URL do spec OpenAPI — sempre derivada do server, nunca configurada à parte. */
+/** Retorna a URL completa para obtenção da especificação OpenAPI. */
 export function getDocsUrl(api, environment = 'production', env = process.env) {
   return `${getServerUrl(api, environment, env)}${api.docsPath || DOCS_PATH_DEFAULT}`;
 }
 
+/** Valida a integridade das configurações declaradas no manifesto de APIs. */
 export function validateManifest(entries = apis) {
   const errors = [];
   if (!Array.isArray(entries) || entries.length === 0) return ['O manifesto precisa ter pelo menos uma API.'];
@@ -130,12 +105,12 @@ export function validateManifest(entries = apis) {
       } else {
         for (const scheme of api.securitySchemes) {
           if (!scheme.name) errors.push(`API "${api.id}": entrada de securitySchemes sem "name".`);
-          if (scheme.name === 'auto') errors.push(`API "${api.id}": 'auto' não vale dentro de securitySchemes — só no securityScheme simples.`);
+          if (scheme.name === 'auto') errors.push(`API "${api.id}": 'auto' não é válido dentro de securitySchemes.`);
         }
       }
     }
     if (!api.isAuthProvider && !api.securityScheme && !api.securitySchemes) {
-      errors.push(`API "${api.id}" não define securityScheme ('auto' resolve sozinho) nem securitySchemes — o token compartilhado não seria plugado nela.`);
+      errors.push(`API "${api.id}" não define securityScheme nem securitySchemes.`);
     }
   }
 
