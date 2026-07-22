@@ -1,147 +1,107 @@
-# Arquitetura — decisões e trade-offs (v2)
+# Arquitetura — decisões e trade-offs
 
-Este documento registra o **porquê** de cada decisão da v2. O histórico completo da v1 (20 decisões, incluindo os becos sem saída que levaram até aqui) vive no repositório da v1 — aqui, cada seção resume o que foi herdado e por quê, e detalha o que é novo.
+Este documento registra o **porquê** de cada decisão do portal. O **como usar** está no README.
 
-## 1. Por que uma v2
+## 1. Princípios
 
-A v1 funcionava, mas acumulou complexidade de caminhos que se provaram errados e foram contornados em camadas: um pipeline Redocly inteiro (CLI + config gerada + plugin de decorators) para transformações que são JSON puro; `x-post-response`/`postResponseScript` no spec, que **nunca funcionou** nesta versão do Scalar (o store de variáveis é recriado por requisição — confirmado no código-fonte deles); e um `customFetch` que dependia de detalhes internos não documentados de como o Scalar chama essa função (a assinatura de 1 argumento foi descoberta por engenharia reversa depois de uma versão quebrada).
+- **Fonte única da verdade**: toda API é declarada em `apis.config.js`, e só ali. Scripts, config do Scalar, plugin de token, `.env` e CI derivam do manifesto — adicionar uma API não exige tocar em mais nada (e o `npm run api:new` faz até a inserção no manifesto sozinho).
+- **Autoria ≠ runtime**: o manifesto é a camada de autoria; o build resolve tudo (ambiente, schemes, URLs) e gera `public/portal.config.json`, o contrato que o frontend consome. Nenhum módulo de `src/` importa o manifesto.
+- **Erros nunca silenciosos**: chave editorial errada, scheme ambíguo, variável de ambiente ausente — tudo falha ou avisa citando exatamente o que corrigir.
+- **Baseado no que o Scalar documenta**: o compartilhamento de token usa a API oficial de plugins, não interceptação de `fetch` nem scripts embutidos no spec (`x-post-response`/`pm.globals` não funciona nesta versão do Scalar — o store de variáveis é recriado a cada requisição).
 
-A v2 reconstrói sobre o que a documentação oficial do Scalar suporta de verdade, mantendo o que a v1 provou que funciona.
+## 2. Manifesto e variáveis de ambiente derivadas
 
-## 2. Manifesto único (`apis.config.js`) — herdado da v1
+`apis.config.js` declara por API: `id`, `title`, `slug`, `isAuthProvider`, `securityScheme` (ou `securitySchemes` no caso rico), `tokenResponseField` (só no auth provider), `default` e opcionalmente `docsPath`. A validação (`validateManifest`) exige exatamente 1 auth provider e 1 default, ids/slugs únicos em kebab-case, e que toda API de negócio tenha um scheme onde plugar o token.
 
-Fonte única da verdade. Config do Scalar, plugin de token, fetch, CI e `.env.example` derivam dele. Adicionar uma API = uma entrada no array + uma pasta em `content/`. A validação (`validateManifest`) roda antes de todo build e é coberta por teste.
+As **URLs base não ficam no código** (segurança do repositório): `getServerUrl` lê variáveis de ambiente com nomes **derivados do id** (`serverEnvVarName`): `<ID>_SERVER_URL` (produção) e `<ID>_SERVER_URL_HML` (homologação). Nada a declarar; variável ausente lança citando o nome exato. `npm run env` regenera o `.env.example` do manifesto e cria/sincroniza o `.env` — acrescenta chaves novas sem tocar em valores preenchidos. Nota honesta de escopo: as URLs continuam visíveis no portal publicado (precisam — são a documentação pública de onde chamar as APIs); a variável protege o *repositório*, não o site.
 
-## 3. Pipeline de conteúdo sem Redocly
+A **URL do spec é sempre derivada**: `<serverUrl><docsPath>` (padrão `/docs?api-docs.json`, sobrescrevível por API). Não existe URL de docs configurável à parte.
 
-**v1:** fetch → gerar `redocly.generated.yaml` → Redocly CLI (`lint` + `bundle`) com um plugin de decorators customizado → bundle final. Três camadas de indireção (config gerada, registro de plugin, CLI externa) para transformações que, no fim, eram "ler YAML, mexer no JSON".
+## 3. Pipeline: fetch → build-content
 
-**v2:** `scripts/build-content.js` — funções puras (`applyOverview`, `applyTagDescriptions`, `applyOperationOverrides`, `applyExamples`, `applyServers`), exportadas e testadas diretamente, sem arquivo intermediário e sem CLI de terceiro. O que se perde do Redocly é o lint de OpenAPI — trade-off aceito: os specs vêm dos backends da SCI (que já os validam), e o `findOrphanOverrides()` cobre o erro editorial mais comum (chave de operação/tag digitada errada, que antes falhava silenciosamente).
+Dois estágios separados de propósito — o build funciona offline a partir do que está em `src/base/` (útil para editar conteúdo sem rede e para testes com fixtures).
 
-O fetch (`scripts/fetch.js`) mantém o filtro de blacklist da v1 (rotas admin/internal/debug/health nunca chegam à documentação pública) e usa `fetch` nativo do Node 22 — sem axios, sem dotenv (`--env-file-if-exists` do próprio Node).
+**`scripts/fetch.js`** (`node scripts/fetch.js [production|homolog]`, ou `PORTAL_ENV`) baixa cada spec e aplica dois filtros de segurança antes de gravar:
+1. **Blacklist por padrão de rota** (admin/internal/debug/health/metrics/swagger/docs) — proteção por convenção de URL;
+2. **`x-internal: true`** — respeita a marcação explícita do backend, no nível do path item (rota inteira) e da operação individual (rota que ficar sem operações some junto).
 
-## 4. Token compartilhado pela API oficial de plugins
+**`scripts/build-content.js`** combina cada spec bruto com o conteúdo editorial e grava `public/openapi/<id>.json` + `public/portal.config.json`. É um conjunto de **funções puras exportadas e testadas** (`applyOverview`, `applyTagRenames`, `applyOperationOverrides`, …) — sem CLI de terceiros, sem arquivos intermediários. O trade-off assumido de não usar um linter OpenAPI externo: os specs vêm dos backends da SCI (que já os validam), e `findOrphanOverrides()` cobre o erro editorial mais comum (chave de operação/tag/scheme/parâmetro que não existe no spec, que senão falharia em silêncio).
 
-O coração da v2. A documentação oficial de plugins do Scalar expõe hooks de ciclo de vida do API Client:
-
-```js
-// ClientPlugin (documentado)
-hooks: {
-  beforeRequest: ({ requestBuilder }) => { requestBuilder.headers.set(...) },
-  responseReceived: ({ response }) => { ... },
-}
-```
-
-`src/plugins/sci-token-plugin.js` usa exatamente isso:
-
-- **`responseReceived`** captura o token de qualquer resposta bem-sucedida vinda do server da API Auth (login E refresh — casa por prefixo de URL contra `serverUrl` do manifesto, sem caminho hardcoded), lendo o campo `tokenResponseField`.
-- **`beforeRequest`** injeta `Authorization: Bearer <token>` nas requisições às APIs consumidoras (servers derivados do manifesto — inclui a própria Auth, porque "Atualizar JWT" usa Bearer; lição da decisão 18 da v1). A regra de quando corrigir é a mesma validada na v1: header ausente, vazio, ou placeholder não resolvido — **nunca** um valor real digitado pela pessoa.
-
-O ClientPlugin é embrulhado num ApiReferencePlugin via `apiClientPlugins` (formato documentado) e entra em `configuration.plugins`.
-
-**O que isso elimina da v1:** o `customFetch` (e toda a fragilidade da assinatura de chamada descoberta por engenharia reversa), e o `x-post-response`/`postResponseScript` no spec (que nunca funcionou — `content/*/operations.yaml` da v2 não tem nenhum script, só texto). Com isso, `verify-shared-token.js` da v1 também deixa de existir — não há mais o que verificar no spec.
-
-**Risco conhecido:** os hooks foram testados com payloads no shape documentado (`requestBuilder` com `.url`/`.headers`, `response` com `.url`/`.ok`/`.clone().json()`), não dentro do Scalar renderizado num navegador — mesma limitação de ambiente da v1. Os hooks são defensivos (nunca lançam; payload inesperado = no-op) para que, no pior caso, o portal continue funcionando sem a correção automática, nunca quebrado por ela.
-
-## 5. Sincronização com o localStorage — herdada da v1, confirmada em produção
-
-`src/plugins/token-storage.js` é o port direto do módulo da v1 que o usuário **confirmou funcionando em navegador real**:
-
-- Grava o token capturado na chave `scalar-reference-auth-<slug>` (mesma chave e formato que o Scalar usa — confirmado no código-fonte), para o campo de auth aparecer preenchido na próxima ativação de documento. O Scalar só relê essa chave ao ativar um documento (trocar de aba/recarregar) — nunca reativamente.
-- **Guard no `setItem`**: o Scalar tem autosave próprio (debounced) nessa mesma chave, refletindo só o que ele sabe em memória — sem o guard, esse autosave apagava o token gravado por fora (corrida real diagnosticada na v1). O guard intercepta a escrita e reaplica o token por cima, na hora. A flag de idempotência é um `WeakSet` em memória — nunca uma propriedade no storage (num navegador real, `storage.prop = x` vira uma entrada de verdade; bug real da v1, decisão 19.1).
-- **`ensureAllMultiSchemeSelections()`** (chamada no `main.js`): mantém `selected.document` da Auth sempre com os dois schemes. Trade-off decidido conscientemente pelo usuário na v1 (decisão 17): a **existência** de `selected.document` desliga a escolha automática de scheme por operação — as duas coisas competem pelo mesmo campo interno, sem meio-termo. Escolhido: topo do documento nunca em branco; a pessoa alterna manualmente entre "Gerar JWT"/"Atualizar JWT" dentro de cada operação.
-
-## 6. Configuration do Scalar — herdada, com plugins injetados
-
-`buildScalarConfiguration(baseUrl, { plugins })` continua pura e testável em Node — o que toca em browser (criação do plugin, com storage) é injetado por `App.vue`. Valores globais mantidos da v1 (tema `fastify` com accent SCI via CSS fora de `@layer` — regra de Cascade Layers garante a vitória, ver comentário em `src/style.css`; `operationTitleSource: 'summary'`; etc.).
-
-Autenticação por documento:
-- Caso simples (`securityScheme`): scheme preferido + prefill `{{sci_auth_token}}`.
-- Caso rico (auth): **nenhum** scheme preferido (`preferredSecurityScheme: null`) — cada operação usa o próprio security requirement (decisão 15 da v1: um preferido no nível do documento "vaza" para operações que deveriam usar outro scheme).
-
-## 7. Conteúdo editorial: um arquivo markdown por coisa
-
-**v1:** `src/decorators/<id>/descriptions.yaml` — texto de documentação espremido dentro de YAML (indentação de bloco `|`, sem preview de markdown no editor) e exemplos num JSON chaveado. Funcionava, mas quem edita conteúdo não deveria precisar saber YAML.
-
-**v2 (iteração 2):** se `overview.md` é intuitivo por ser *markdown puro num arquivo*, tudo segue o mesmo padrão:
+### 3.1 Ordem do pipeline (fixa, determinística)
 
 ```
-content/<id>/
-  overview.md
-  tags/<nome-livre>.md              frontmatter: tag → corpo = descrição
-  operations/<nome-livre>.md        frontmatter: operation + summary → corpo = descrição
-  operations/<mesmo-nome>.example.json   exemplo de corpo, pareado pelo nome do .md
-```
-
-Decisões dentro desse formato:
-
-- **Frontmatter em vez de nome-de-arquivo-como-chave** — chaves de operação contêm barras (`POST /api/v1/auth/refresh`), impossíveis num nome de arquivo sem encoding feio; e nomes de tag têm acento, que cria problemas de normalização Unicode entre sistemas (NFC/NFD no git entre macOS/Windows). O nome do arquivo fica livre e humano; o frontmatter (3 linhas) declara o alvo.
-- **Exemplo pareado por nome** (`x.md` + `x.example.json`) em vez de frontmatter — JSON dentro de YAML é a mesma dor que o formato antigo; um arquivo `.json` de verdade tem highlight, validação do editor e diff limpo.
-- **Prefixo `_` = ignorado** — rascunhos e modelos moram na mesma pasta sem efeito no build (cada pasta scaffoldada já vem com um `_modelo.md` mostrando o formato no próprio lugar onde a pessoa vai escrever).
-- **Avisos em vez de silêncio** — `loadContent` acumula e o build imprime: frontmatter faltando (com o modelo certo na própria mensagem), `tag:`/`operation:` inexistente no spec (via `findOrphanOverrides`, herdado), duplicata entre arquivos, exemplo órfão, JSON inválido. O erro editorial nunca falha silenciosamente — a lição mais repetida da v1.
-
-A camada de transformação (`transformSpec` e os `apply*`) não mudou nada — o formato interno `{ overview, tags, operations, examples }` é o mesmo; só `loadContent` (a leitura) foi trocada. É exatamente o tipo de mudança que a separação leitura/transformação existia pra permitir.
-
-### 7.1 Personalização completa (iteração 3)
-
-A pedido, o sistema foi estendido pra cobrir **tudo** que é editável num spec pela camada editorial — mesmo o que ainda não é usado, pra funcionalidade existir quando precisar. A referência completa de campos está no README ("Referência completa do que é personalizável"); aqui, as decisões de design:
-
-**Ordem do pipeline importa, e é fixa** (`transformSpec`):
-
-```
-1. servers / info(title, version) / overview       (documento)
-2. hide de operações, depois de tags               (nomes ORIGINAIS)
-3. moveToTag                                       (ainda nomes originais)
+1. servers / info(title, version) / overview        (documento)
+2. hide de operações, depois de tags                (nomes ORIGINAIS)
+3. moveToTag                                        (ainda nomes originais)
 4. summary/description/deprecated/parameters + exemplos (chaveados por caminho — imunes a rename)
-5. descrições de tag e de security scheme          (nomes originais)
-6. renameTo de tags                                (POR ÚLTIMO — muda os nomes que tudo acima usou)
+5. descrições de tag e de security scheme           (nomes originais)
+6. renameTo de tags                                 (POR ÚLTIMO)
 7. prune de tags que ficaram vazias
 ```
 
-A regra que essa ordem cria pra quem escreve conteúdo: **todo campo referencia o nome original do spec**. Um `moveToTag` + um `renameTo` da tag destino funcionam juntos porque o move roda antes do rename. Sem essa ordem fixa, o resultado dependeria da ordem dos arquivos no disco — não-determinístico.
+A regra que essa ordem cria para quem escreve conteúdo: **todo campo referencia o nome original do spec**. Um `moveToTag` + `renameTo` da tag destino funcionam juntos porque o move roda antes do rename; sem ordem fixa, o resultado dependeria da ordem dos arquivos no disco.
 
-**`renameTo` atualiza dois lugares ao mesmo tempo** — `spec.tags[].name` E o array `tags` de cada operação. Só o primeiro faria as operações "sumirem" do grupo (o Scalar agrupa pelo nome exato). É por isso que rename é uma transformação própria, não um caso do `applyTagDescriptions`.
+**`renameTo` atualiza dois lugares ao mesmo tempo** — `spec.tags[].name` E o array `tags` de cada operação. Só o primeiro faria as operações "sumirem" do grupo (o Scalar agrupa pelo nome exato).
 
-**Renomear security scheme é recusado de propósito** (com aviso no build se alguém tentar via `renameTo` em `security/*.md`): o nome do scheme participa do prefill do token (`apis.config.js`) e dos security requirements de cada operação — um rename editorial quebraria os dois silenciosamente, a classe de bug mais cara deste projeto.
+**Renomear security scheme é recusado** (com aviso no build): o nome participa do prefill do token e dos security requirements de cada operação — um rename editorial quebraria os dois silenciosamente.
 
-**`hide` editorial ≠ blacklist do fetch.** A blacklist (`scripts/fetch.js`) é segurança — rotas internas nunca chegam ao repositório. O `hide` é curadoria — a rota existe no spec baixado, só não aparece na documentação. Camadas diferentes, propósitos diferentes.
+**`hide` editorial ≠ filtros do fetch.** Os filtros do fetch são segurança — rotas internas nunca chegam ao repositório. O `hide` é curadoria — a rota existe no spec baixado, só não aparece na documentação.
 
-**Tags vazias são podadas automaticamente** (`pruneEmptyTags`) — depois de `hide`s e `move`s, uma tag sem nenhuma operação viraria uma seção vazia no portal.
+## 4. Resolução automática de securityScheme
 
-Os links âncora dentro do conteúdo usam os formatos confirmados no código-fonte do Scalar (`getNavigationOptions()` em `@scalar/workspace-store`): `{doc}/description/{slug}` para headings, `{doc}/tag/{slug}/{MÉTODO}{caminho}` para operações, `{doc}` sozinho para trocar de API. O algoritmo de slug (e a pegadinha do emoji de teclado numérico) está documentado no README, seção "Como editar o conteúdo".
+`securityScheme: 'auto'` é resolvido pelo build contra o spec **real** baixado (`resolveSecurityScheme`): exatamente 1 scheme HTTP bearer em `components.securitySchemes` → é ele; 0 ou vários → o build **falha** listando os nomes disponíveis para fixar explicitamente. Determinístico: ou resolve sozinho, ou explica exatamente o que fazer — nunca "conferir depois".
 
-## 8. O que ainda depende de QA num navegador real
+## 5. portal.config.json — o contrato de runtime
 
-- **Os hooks do plugin dentro do Scalar renderizado** — o shape dos payloads segue a documentação e os testes simulam exatamente esse shape, mas a integração completa (Scalar chamando os hooks de verdade) só um navegador confirma. Roteiro de teste: gerar o token no login → clicar Send no refresh (deve sair com Bearer correto) → trocar pra aba RH Net Social (campo deve aparecer preenchido) → chamada de negócio (deve autenticar).
-- **Nome do security scheme da RH Net Social** — `'bearerAuth'` segue não confirmado contra o spec real (mesma pendência da v1). Conferir após o primeiro `npm run api:fetch` de produção.
-- **Aparência final** — tema, tabelas (CSS herdado da v1), responsividade.
+O build gera `public/portal.config.json` com `{ environment, sharedTokenVariable, apis: [...] }` (cada API já resolvida: `serverUrl` do ambiente, scheme detectado, prefills). O `main.js` faz **bootstrap assíncrono**: busca o arquivo, e só então monta o app passando o config como prop — com mensagem clara se o arquivo não existir (`rode npm run build:content`).
 
-## 9. Iteração 4: ambientes, resolução automática e a separação autoria/runtime
+Consequências práticas: o portal de homologação aponta para as APIs de homologação de verdade (o "Send" testa hml), o título marca "(Homologação)", e os testes do frontend usam uma fixture do contrato em vez do manifesto real.
 
-**Problema apontado:** `sourceUrlEnv` era redundante (a URL de docs é sempre `serverUrl + '/docs?api-docs.json'`), o `securityScheme` pedia conferência manual pós-fetch ("ou é automático ou não é"), e faltava o fluxo homologação → produção.
+## 6. Token compartilhado — API oficial de plugins
 
-**Decisões:**
+`src/plugins/sci-token-plugin.js` é um ClientPlugin com os hooks documentados do Scalar, embrulhado num ApiReferencePlugin via `apiClientPlugins` (formato documentado) e passado em `configuration.plugins`:
 
-1. **URL de docs derivada, nunca configurada** — `getDocsUrl(api, env)` = `servers[env] + docsPath` (padrão `DOCS_PATH_DEFAULT`, sobrescrevível por API se alguma fugir do padrão). Isso eliminou o `.env` inteiro: sem axios, sem dotenv, sem `env:example` — o manifesto é literalmente a única configuração.
+- **`responseReceived`**: captura o token de qualquer resposta bem-sucedida vinda do server da API de Autenticação (login E refresh — casa por prefixo de URL contra o `serverUrl` resolvido, sem caminho hardcoded), lendo o campo `tokenResponseField`.
+- **`beforeRequest`**: injeta `Authorization: Bearer <token>` nas requisições às APIs consumidoras. Os servers consumidores são derivados do config: toda API com `securityScheme` + a própria Autenticação (o refresh usa Bearer). A regra de quando corrigir: header ausente, vazio, ou com o placeholder `{{sci_auth_token}}` não resolvido — **nunca** um valor real digitado pela pessoa.
 
-2. **`securityScheme: 'auto'` resolvido pelo build contra o spec REAL** (`resolveSecurityScheme`): exatamente 1 scheme HTTP bearer em `components.securitySchemes` → é ele; 0 ou vários → o build **falha** listando os nomes disponíveis. Determinístico: ou resolve sozinho, ou explica exatamente o que fixar. A pendência eterna do "conferir o nome do bearerAuth depois" deixou de existir como categoria.
+Os hooks são defensivos (nunca lançam; payload inesperado = no-op): no pior caso o portal funciona sem a correção automática, nunca quebrado por ela.
 
-3. **Separação autoria/runtime** — `apis.config.js` é a camada de AUTORIA (o que a pessoa declara); o build resolve tudo (ambiente, schemes, URLs) e gera `public/portal.config.json`, a camada de RUNTIME (o contrato que o frontend consome via fetch no bootstrap). Nenhum módulo de `src/` importa mais o manifesto: `scalar.config`, `sci-token-plugin` e `token-storage` são parametrizados pelo config resolvido. Consequências práticas: o portal de homolog aponta pras APIs de homolog DE VERDADE (o "Send" testa hml), o título marca "(Homologação)", e os testes usam uma fixture do contrato em vez do manifesto real.
+**Risco conhecido:** os hooks foram testados com payloads no shape documentado (`requestBuilder` com `.url`/`.headers.set`, `response` com `.url`/`.ok`/`.clone().json()`), não dentro do Scalar renderizado num navegador. Roteiro de QA: gerar o token no login → Send no refresh (deve sair com Bearer) → trocar para outra API (campo preenchido) → chamada de negócio (autentica).
 
-4. **Ambientes como dimensão de primeira classe** — `servers: { production, homolog }` por API; `fetch.js`/`build-content.js` aceitam o ambiente por argumento CLI (`node scripts/fetch.js homolog`) ou `PORTAL_ENV`. Homolog sem URL configurada = erro apontando o campo exato.
+## 7. Sincronização com o localStorage
 
-5. **CI em dois fluxos** — `deploy-prod.yml` (simples: testes → fetch de produção → build → Pages) e `deploy-hml.yml` (placeholder; o fluxo de homologação será implementado pelo DevOps após a validação — o código já suporta o ambiente via `npm run api:sync:hml`).
+`src/plugins/token-storage.js` escreve na mesma persistência de auth que o Scalar usa (confirmado no código-fonte dele):
 
-## 10. Iteração 5: URLs fora do código e CI provisório
+- **Chave e formato**: `scalar-reference-auth-<slug>`, com `secrets[scheme] = { type, 'x-scalar-secret-token' | username | password }` e `selected.document = { selectedIndex, selectedSchemes }`. O Scalar só **relê** essa chave ao ativar um documento (trocar de aba/recarregar) — nunca reativamente; por isso o token capturado é gravado ali, para o campo aparecer preenchido na próxima ativação.
+- **Guard no `setItem`**: o Scalar tem autosave próprio (debounced) na mesma chave, refletindo só o que ele sabe em memória — sem o guard, esse autosave apagaria o token gravado por fora. O guard intercepta a escrita e reaplica o token por cima, na hora. A flag de idempotência é um `WeakSet` em memória — nunca uma propriedade no storage (num navegador real, `storage.prop = x` vira uma entrada persistente de verdade).
+- **`ensureAllMultiSchemeSelections`** (a cada carga da página): mantém o `selected.document` da Autenticação sempre com os dois schemes. Trade-off consciente: a **existência** de `selected.document` desliga a escolha automática de scheme por operação — as duas coisas competem pelo mesmo campo interno do Scalar, sem meio-termo. Escolhido: topo do documento nunca em branco; a pessoa alterna manualmente entre "Gerar JWT"/"Atualizar JWT" dentro de cada operação.
 
-**URLs como variáveis de ambiente derivadas** — as URLs base saíram de `apis.config.js` por segurança (não ficam no repositório): `getServerUrl` lê `<ID>_SERVER_URL` / `<ID>_SERVER_URL_HML`, com os nomes **derivados do id** (`serverEnvVarName`) — nada a declarar no manifesto, `npm run env:example` regenera o `.env.example`, e a ausência da variável falha citando o nome exato. Nota honesta de escopo: as URLs continuam visíveis no portal publicado (precisam — são a documentação pública de onde chamar as APIs); a variável protege o *repositório*, não o site.
+## 8. Configuration do Scalar
 
-**CI reduzido de propósito** — o fluxo de homologação saiu do escopo do projeto e é responsabilidade do DevOps pós-validação. `deploy-prod.yml` é o mínimo honesto (testes → fetch → build → Pages); `deploy-hml.yml` é um placeholder que falha explicitamente se disparado, documentando que os scripts por ambiente já estão prontos.
+`buildScalarConfiguration(portalConfig, baseUrl, { plugins })` é pura e testável em Node — o que toca em browser (plugin com storage) é injetado por `App.vue`. Tema `fastify` com accent SCI via CSS **fora de `@layer`** (as camadas `scalar-base`/`scalar-theme` têm prioridade menor que estilos sem camada — é o mecanismo oficial de customização). Autenticação por documento: caso simples = scheme preferido + prefill `{{sci_auth_token}}`; caso da Autenticação = **nenhum** scheme preferido (`preferredSecurityScheme: null`), porque um preferido no nível do documento "vaza" para operações que deveriam usar outro scheme — cada operação usa o próprio security requirement.
 
+A marca do portal entra pelo slot oficial `sidebar-start` do `<ApiReference>`.
 
-## 11. Iteração 6: automações de rotina
+## 9. Conteúdo editorial: um arquivo markdown por coisa
 
-- **Filtro `x-internal: true` no fetch** — além da blacklist por padrão de rota, o fetch agora remove path items e operações individuais marcados com `x-internal: true` no spec de origem (rota que fica sem operações some junto). A blacklist protege por convenção de URL; o `x-internal` respeita a marcação explícita do backend.
-- **`npm run env`** — regenera o `.env.example` do manifesto E cria/sincroniza o `.env` a partir dele: chaves novas são acrescentadas, valores preenchidos nunca são tocados, e as variáveis ainda vazias são listadas. Idempotente.
-- **`npm run api:sync[:hml]`** — fetch + build:content num comando (o par que sempre roda junto).
-- **`api:new` totalmente automático** — além do scaffold de conteúdo, insere o bloco no `apis.config.js` sozinho (num marcador fixo; se o marcador sumir, cai no modo manual com o bloco impresso), valida o manifesto na hora, sincroniza o `.env` e lista exatamente o que falta preencher. Os modelos `_modelo.md` são copiados da API auth (fonte única dos modelos).
+Se a página inicial (`overview.md`) é intuitiva por ser *markdown puro num arquivo*, tudo segue o mesmo padrão: um `.md` por tag/operação/scheme, com um frontmatter mínimo dizendo o alvo, e exemplos como `.json` de verdade pareados pelo nome. Decisões dentro do formato:
+
+- **Frontmatter em vez de nome-de-arquivo-como-chave** — chaves de operação contêm barras (impossíveis num nome de arquivo) e nomes de tag têm acento (problemas de normalização Unicode NFC/NFD no git entre sistemas). O nome do arquivo fica livre e humano; o frontmatter declara o alvo.
+- **Exemplo pareado por nome** (`x.md` + `x.example.json` / `x.response-<status>.example.json`) — um `.json` real tem highlight, validação do editor e diff limpo; e é o `.md` que declara a operação, então exemplo órfão gera aviso.
+- **Prefixo `_` = ignorado** — rascunhos e modelos moram na mesma pasta (cada pasta tem um `_modelo.md` com a referência completa de campos, no lugar exato onde a pessoa escreve).
+- **Avisos acumulados e impressos no build** — frontmatter faltando (com o modelo certo na mensagem), alvo inexistente no spec, duplicatas, JSON inválido.
+
+A referência completa de campos está no README.
+
+## 10. Links âncora
+
+Formatos confirmados no código-fonte do Scalar (`getNavigationOptions()` em `@scalar/workspace-store`): heading do overview = `{documentId}/description/{slug}`; tag = `{documentId}/tag/{slug}`; operação = `{documentId}/tag/{slugTag}/{MÉTODO}{caminho}`; documento = `{documentId}`. O slug: minúsculo, remove o que não é letra/marca/número, espaços viram hífen. Emoji comum some do slug; **emoji de teclado numérico (1️⃣) não** — evitar em títulos. `renameTo` de tag muda o slug — links que apontem para ela precisam acompanhar.
+
+## 11. CI e ambientes
+
+O ambiente é uma dimensão de primeira classe: `fetch.js` e `build-content.js` aceitam `production|homolog` por argumento CLI ou `PORTAL_ENV`, lendo as variáveis correspondentes (`<ID>_SERVER_URL[_HML]`).
+
+- **`deploy-prod.yml`**: fluxo simples — push na `main` → testes → fetch de produção → build → GitHub Pages. Secrets: um `<ID>_SERVER_URL` por API.
+- **`deploy-hml.yml`**: placeholder que falha explicitamente se disparado — o fluxo de homologação é responsabilidade do DevOps após a validação do projeto. O código já suporta o ambiente por completo (`npm run api:sync:hml`); nenhuma mudança será necessária.
+
+O `.gitignore` cobre o padrão do projeto: `.env`, gerados do pipeline (`src/base/*`, `public/openapi/*`, `public/portal.config.json`) preservando os `.gitkeep`.
