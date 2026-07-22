@@ -1,13 +1,13 @@
-## 1. Visão geral da API
+## 🌐 1. Visão geral da API
 
 A **API Auth** é o serviço central de autenticação da SCI. Ela é responsável por gerar e renovar o token JWT utilizado por **todas as demais APIs disponíveis neste portal**.
 
 > [!TIP]
-> **Autenticação única no Portal:** Após gerar o token nesta API, a sua sessão fica ativa e o token é aplicado automaticamente em todas as outras abas. Não é necessário copiar e colar credenciais ao navegar entre os endpoints.
+> **Autenticação única no Portal:** Após gerar o token nesta API, a sua sessão fica ativa e o token é applied automaticamente em todas as outras abas. Não é necessário copiar e colar credenciais ao navegar entre os endpoints.
 
 <br />
 
-### Fluxo de integração
+### 🚀 Fluxo de integração
 
 Para começar a consumir as APIs da SCI, siga esta ordem recomendada:
 
@@ -19,7 +19,7 @@ Para começar a consumir as APIs da SCI, siga esta ordem recomendada:
 
 <br />
 
-## 2. Credenciais de acesso
+## 🔐 2. Credenciais de acesso
 
 Para gerar o token JWT, você precisará de **duas credenciais distintas**. Elas combinam a identidade do integrador com a autorização da empresa cliente da SCI:
 
@@ -36,7 +36,7 @@ Para gerar o token JWT, você precisará de **duas credenciais distintas**. Elas
 
 <br />
 
-### Obter Token de Parceiro
+### 🤝 Obter Token de Parceiro
 
 O **Token de Parceiro** é a credencial que identifica a sua empresa na SCI. Ele é emitido pela nossa equipe de integrações assim que a parceria é formalizada.
 
@@ -48,7 +48,7 @@ Se a sua empresa ainda não é uma parceira cadastrada, solicite a sua credencia
 
 <br />
 
-### Obter Token de Cliente
+### 🔑 Obter Token de Cliente
 
 Esta credencial deve ser gerada pela empresa dentro do **Módulo Cliente** no sistema **SCI WEB**:
 
@@ -65,7 +65,7 @@ Esta credencial deve ser gerada pela empresa dentro do **Módulo Cliente** no si
 
 <br />
 
-## 3. Autenticação no portal
+## ⚡ 3. Autenticação no portal
 
 Com as duas credenciais em mãos, você pode autenticar a sua sessão diretamente no portal:
 
@@ -82,13 +82,13 @@ Se as credenciais estiverem corretas, a API retornará o status `201 Created` co
 
 <br />
 
-## 4. Gerenciamento e boas práticas do token JWT
+## 🛠️ 4. Gerenciamento do token JWT
 
 A API Auth disponibiliza dois fluxos distintos para a gestão do token JWT. Escolha a operação adequada para cada etapa da sua integração:
 
 <br />
 
-### Gerar JWT
+### 🏷️ Gerar JWT
 
 | Campo | Detalhe |
 | :--- | :--- |
@@ -98,28 +98,28 @@ A API Auth disponibiliza dois fluxos distintos para a gestão do token JWT. Esco
 
 <br />
 
-### Atualizar JWT
+### 🔄 Atualizar JWT
 
 | Campo | Detalhe |
 | :--- | :--- |
 | **Endpoint** | [`POST /api/v1/auth/refresh`](#auth/tag/autenticação/POST/api/v1/auth/refresh) |
 | **Objetivo** | Renovar o tempo de validade do token atual sem retransmitir credenciais sensíveis. |
-| **Requer** | Token JWT atual (ainda válido) via Bearer Auth. |
+| **Requer** | Token JWT atual válido via Bearer Auth. |
 
 <br />
 
-### Ciclo de Vida do Acesso
+### ⏳ Ciclo de Vida do Acesso
 
-| Estado da Conexão | Endpoint Recomendado |
+| Estado | Endpoint Recomendado |
 | :--- | :--- |
-| **Primeiro acesso ou Token expirado** | **Gerar JWT** ([`POST /api/v1/auth/credencial/login`](#auth/tag/autenticação/POST/api/v1/auth/credencial/login)) |
-| **Sessão ativa (renovação em produção)** | **Atualizar JWT** ([`POST /api/v1/auth/refresh`](#auth/tag/autenticação/POST/api/v1/auth/refresh)) |
+| **Novo acesso ou Expirado** | **Gerar JWT** ([`POST /api/v1/auth/credencial/login`](#auth/tag/autenticação/POST/api/v1/auth/credencial/login)) |
+| **Sessão ativa** | **Atualizar JWT** ([`POST /api/v1/auth/refresh`](#auth/tag/autenticação/POST/api/v1/auth/refresh)) |
 
 ---
 
 <br />
 
-## 5. Perguntas frequentes
+## ❓ 5. Perguntas frequentes
 
 <details>
 <summary><b>1. Preciso gerar um token diferente para cada API do portal?</b></summary>
