@@ -2,12 +2,7 @@
 tag: Autenticação
 ---
 
-Gerenciamento do ciclo de vida do **Token JWT** utilizado para autenticar requisições em **todas as demais APIs do portal**.
-
-| Operação | Finalidade | Tipo de Autenticação |
-| :--- | :--- | :--- |
-| [**Gerar JWT**](#auth/tag/autenticacao/POST/api/v1/auth/credencial/login) | Emitir novo token JWT | **Basic Auth** (`Username` + `Password`) |
-| [**Atualizar JWT**](#auth/tag/autenticacao/POST/api/v1/auth/refresh) | Renovar sessão ativa sem expor credenciais | **Bearer Auth** (`Bearer <token>`) |
+Gerenciamento do ciclo de vida do **Token JWT** utilizado para autenticar requisições em **todas as APIs da SCI**.
 
 > [!TIP]
 > **Uso no Portal:**  
