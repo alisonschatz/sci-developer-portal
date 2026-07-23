@@ -14,12 +14,12 @@ A **API Auth** é o serviço central de autenticação da SCI, responsável por 
 
 ## 🔏 2. Credenciais de acesso
 
-Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas nos parâmetros de autenticação conforme a tabela abaixo:
+Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas na **tabela de credenciais de acesso** abaixo:
 
-| Parâmetro | Credencial | Papel |
+| Parâmetro | Credencial | Função |
 | :--- | :--- | :--- |
-| **`Username`** | [**Token de Parceiro**](#auth/description/como-obter-o-token-de-parceiro) | Identificar o sistema integrador. |
-| **`Password`** | [**Token de Cliente**](#auth/description/como-obter-o-token-de-cliente) | Autorizar o acesso aos dados da empresa. |
+| **`Username`** | [**Token de Parceiro**](#auth/description/como-obter-o-token-de-parceiro) | Identificar o sistema integrador |
+| **`Password`** | [**Token de Cliente**](#auth/description/como-obter-o-token-de-cliente) | Autorizar o acesso aos dados da empresa |
 
 > [!NOTE]
 > **Dinâmica das credenciais:** O Token de Parceiro e o Token de Cliente são credenciais primárias usadas para emitir o **Token JWT**, este sim responsável por autenticar as requisições na API.
