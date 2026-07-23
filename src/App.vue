@@ -22,9 +22,12 @@ let zoomInstance = null;
 let observer = null;
 
 const applyZoom = () => {
+  // Seleciona apenas imagens do conteúdo Markdown, ignorando badges, logo do sidebar e imagens desabilitadas
   const images = Array.from(
-    document.querySelectorAll('.scalar-api-reference img:not([src*="shields.io"]):not(.medium-zoom-image)')
-  );
+    document.querySelectorAll(
+      '.scalar-api-reference img:not([src*="shields.io"]):not(.sidebar-brand img):not([data-medium-zoom-disabled])'
+    )
+  ).filter((img) => !img.classList.contains('medium-zoom-image'));
 
   if (images.length > 0) {
     if (!zoomInstance) {
@@ -39,8 +42,20 @@ const applyZoom = () => {
 
 onMounted(() => {
   applyZoom();
-  observer = new MutationObserver(() => {
-    applyZoom();
+
+  // MutationObserver para reanexar o zoom quando novas páginas/rotas carregarem, ignorando alterações do próprio zoom
+  observer = new MutationObserver((mutations) => {
+    const isZoomMutation = mutations.some((m) =>
+      Array.from(m.addedNodes).some(
+        (node) =>
+          node.classList &&
+          (node.classList.contains('medium-zoom-overlay') || node.classList.contains('medium-zoom-image'))
+      )
+    );
+
+    if (!isZoomMutation) {
+      applyZoom();
+    }
   });
 
   observer.observe(document.body, { childList: true, subtree: true });

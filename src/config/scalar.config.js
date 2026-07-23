@@ -38,7 +38,7 @@ export function buildScalarConfiguration(portalConfig, baseUrl = '/', { plugins 
     sources: buildScalarSources(portalConfig, baseUrl),
     plugins,
 
-    theme: 'fastify',
+    theme: 'none',
     layout: 'modern',
     hideModels: true,
     hideClientButton: true,
