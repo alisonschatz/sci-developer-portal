@@ -36,7 +36,7 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 > [!NOTE]
 > **Ainda não é parceiro?**
-> Cadastre-se como integrador para solicitar a sua chave de acesso:
+> Cadastre-se como integrador para solicitar a seu token de parceiro:
 > 
 > <p align="center">
 > 
