@@ -29,7 +29,7 @@ test('caso rico (auth): nenhum preferido; só schemes com prefill entram', () =>
 test('configuration global + plugins injetados + título marca homologação', () => {
   const fake = () => ({});
   const config = buildScalarConfiguration(portalConfig, '/', { plugins: [fake] });
-  assert.equal(config.theme, 'fastify');
+  assert.equal(config.theme, 'none');
   assert.equal(config.persistAuth, true);
   assert.deepEqual(config.plugins, [fake]);
   assert.equal(config.metaData.title.includes('Homologação'), false);
