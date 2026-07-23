@@ -45,3 +45,23 @@ body {
 .scalar-api-reference table td {
   word-break: normal !important;
 }
+
+/* Garante que o container e a imagem em zoom fiquem no topo absoluto de toda a UI do Scalar */
+.medium-zoom-overlay,
+.medium-zoom-image--opened {
+  z-index: 999999 !important;
+}
+
+/* Fundo escuro cobrindo tudo */
+.medium-zoom-overlay {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Indicadores do cursor */
+.scalar-api-reference img:not([src*="shields.io"]) {
+  cursor: zoom-in;
+}
+
+.medium-zoom-image--opened {
+  cursor: zoom-out !important;
+}
