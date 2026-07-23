@@ -18,11 +18,8 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 | Parâmetro | Credencial | Função |
 | :--- | :--- | :--- |
-| **`Username`** | [**Token de Parceiro**](#auth/description/como-obter-o-token-de-parceiro) | Identificar o sistema integrador |
-| **`Password`** | [**Token de Cliente**](#auth/description/como-obter-o-token-de-cliente) | Autorizar o acesso aos dados da empresa |
-
-> [!NOTE]
-> **Dinâmica das credenciais:** O Token de Parceiro e o Token de Cliente são credenciais primárias usadas para emitir o **Token JWT**, este sim responsável por autenticar as requisições na API.
+| **`Username`** | [**Token de Parceiro**](#auth/description/como-obter-o-token-de-parceiro) | Identificar qual **parceiro** está chamando a API |
+| **`Password`** | [**Token de Cliente**](#auth/description/como-obter-o-token-de-cliente) | Autorizar o acesso aos dados do **cliente** |
 
 > [!CAUTION]
 > **Segurança:** Ambas as credenciais são secretas. Guarde-as em local seguro e nunca as exponha publicamente.
