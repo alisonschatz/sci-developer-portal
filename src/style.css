@@ -53,11 +53,7 @@ body {
   --scalar-background-accent: var(--sci-navy);
 
   --scalar-border-color: var(--sci-border);
-
   --scalar-color-ghost: var(--sci-navy);
-  --scalar-button-1: var(--sci-navy);
-  --scalar-button-1-color: var(--sci-white);
-  --scalar-button-1-hover: #2b3956;
 }
 
 /* Modo Escuro (Dark Mode) */
@@ -73,9 +69,6 @@ body {
   --scalar-background-accent: var(--sci-blue);
 
   --scalar-border-color: rgba(255, 255, 255, 0.1);
-
-  --scalar-button-1: var(--sci-blue);
-  --scalar-button-1-color: var(--sci-navy);
 }
 
 /* Métodos HTTP */
