@@ -12,7 +12,7 @@ A **API Auth** é o serviço central de autenticação da SCI, responsável por 
 
 ---
 
-## 🔐 2. Credenciais de acesso
+## 🔏 2. Credenciais de acesso
 
 Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas nos parâmetros de autenticação conforme a tabela abaixo:
 
@@ -31,30 +31,45 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 ### 🔑 Como obter o Token de Parceiro
 
->  Este é o valor do campo **`Username`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele identifica o seu sistema integrador perante a SCI.
+> Este é o valor do campo **`Username`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele identifica o seu sistema integrador perante a SCI.
 
-| Situação da sua empresa | O que fazer |
-| :--- | :--- |
-| ✅ **Já é parceira SCI** | Solicite o token diretamente à equipe de integrações. |
-| 🆕 **Ainda não é parceira** | Cadastre-se como integrador clicando no botão abaixo. |
+> [!TIP]
+> **Já é parceiro SCI?**
+> Solicite seu token diretamente com a equipe de integrações.
 
-<p align="center">
+> [!NOTE]
+> **Ainda não é parceiro?**
+> Cadastre-se como integrador para solicitar a sua chave de acesso:
+> 
+> <p align="center">
+> 
+> [![Solicitar Token de Parceiro](https://img.shields.io/badge/PARCEIRO-📩_SOLICITAR_TOKEN_AGORA-38486C?style=for-the-badge&labelColor=91D8F7)](https://visual.sci10.com.br/sistemas-de-gestao/)
+> 
+> </p>
 
-[![Solicitar Token de Parceiro](https://img.shields.io/badge/PARCEIRO-📩_SOLICITAR_TOKEN_AGORA-38486C?style=for-the-badge&labelColor=91D8F7)](https://visual.sci10.com.br/sistemas-de-gestao/)
-
-</p>
+---
 
 ### 🔑 Como obter o Token de Cliente
 
->  Este é o valor do campo **`Password`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele autoriza o acesso aos dados da sua empresa.
+> Este é o valor do campo **`Password`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele autoriza o acesso aos dados da sua empresa.
 
 O cliente deve gerar esta credencial no **SCI WEB**:
 
-1. Acesse o [SCI WEB](https://sciweb.com.br) e entre no **Módulo Cliente**.
-2. No canto superior direito, clique no seu nome de usuário e selecione **"Gerar token API"**.
-![Gerar token API](/assets/gerar-token.png)
-3. Clique em **"+ Criar novo token"**, defina um nome identificador (ex: *Integração RH*) e confirme.
-4. Copie o token exibido e salve-o em local seguro.
+1. **Acessar o menu de tokens:**  
+   Acesse o [SCI WEB](https://sciweb.com.br), entre no **Módulo Cliente**, clique no seu nome de usuário localizado no canto superior direito e selecione **"Gerar token API"**.  
+   ![Gerar token API](/assets/gerar-token.png)
+
+2. **Iniciar a criação:**  
+   Na janela de gerenciamento de tokens, clique no botão **"+ Criar novo token"**.  
+   ![Criar novo token](/assets/gerar-token2.png)
+
+3. **Identificar o token:**  
+   Defina um nome identificador para o token, como por exemplo *Integração RH*, e clique em **"Continuar"**.  
+   ![Nomear o token](/assets/gerar-token3.png)
+
+4. **Copiar e armazenar:**  
+   Clique em **"Copiar"** para copiar a chave gerada e salve-a imediatamente em um local seguro.  
+   ![Copiar token gerado](/assets/gerar-token4.png)
 
 > [!WARNING]
 > O Token de Cliente é exibido **uma única vez**. Em caso de perda, acesse o SCI WEB, revogue a chave antiga e gere uma nova.
@@ -63,19 +78,24 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 
 ## 🔐 3. Autenticação
 
-A autenticação valida suas credenciais primárias ou renova a sessão existente para retornar um token JWT válido de acesso.
+A autenticação é dividida em dois fluxos complementares. Escolha a operação adequada para o estado atual da sua aplicação:
+
+| Necessidade da Integração | Autenticação Requerida |
+| :--- | :--- |
+| [**Gerar JWT**](#auth/description/gerar-jwt)<br>*(Primeiro acesso)* | **Basic Auth** (`Username` + `Password`) |
+| [**Atualizar JWT**](#auth/description/atualizar-jwt)<br>*(Renovação de sessão)* | **Bearer Auth** (`Bearer <token_jwt_atual>`) |
 
 ### 🔑 Gerar JWT
 
-Gere o token de acesso (JWT) enviando o **Token de Parceiro** (no campo *Username*) e o **Token de Cliente** (no campo *Password*) via autenticação HTTP Basic. O token retornado possui **validade de 1 hora (3.600 segundos)**.
+Efetue o login para emitir um **Token JWT** válido por **1 hora (3.600 segundos)**.
 
 | Item | Detalhe |
 | :--- | :--- |
 | **Endpoint** | [`POST /api/v1/auth/credencial/login`](#auth/tag/autenticação/POST/api/v1/auth/credencial/login) |
-| **Tipo**| HTTP Basic Auth |
-| **Conteúdo** | `Username:` Token de Parceiro</br>`Password:` Token de Cliente |
+| **Tipo** | HTTP Basic Auth |
+| **Credenciais** | `Username:` Token de Parceiro <br> `Password:` Token de Cliente |
 | **Validade** | `3600` segundos |
-| **Resposta** | Status `201 Created` |
+| **Status** | `201 Created` |
 
 #### Exemplo de Resposta JSON (`201 Created`):
 
@@ -88,11 +108,11 @@ Gere o token de acesso (JWT) enviando o **Token de Parceiro** (no campo *Usernam
 ```
 
 > [!IMPORTANT]
-> **Uso do Token:** Armazene a string retornada no campo `token` no seu servidor e utilize-a no cabeçalho HTTP de todas as requisições subsequentes:
+> **Como utilizar:** Armazene o valor do campo `token` no seu servidor e utilize-a no cabeçalho HTTP de todas as requisições subsequentes:
 > `Authorization: Bearer <token>`
 
 > [!NOTE]
-> Para testar requisições diretamente pelo portal, consulte as instruções na [Visão geral](#auth/description/1-visão-geral).
+> Teste este endpoint pelo menu lateral em [**Gerar token JWT**](#auth/tag/autenticação/POST/api/v1/auth/credencial/login)
 
 ---
 
@@ -104,11 +124,11 @@ Estenda o tempo de acesso da sua aplicação sem a necessidade de retransmitir a
 | :--- | :--- |
 | **Endpoint** | [`POST /api/v1/auth/refresh`](#auth/tag/autenticação/POST/api/v1/auth/refresh) |
 | **Tipo**| Bearer Auth |
-| **Conteúdo** | `Bearer <token_atual>` |
+| **Credenciais** | `Bearer <token_jwt_atual>` |
 | **Validade** | `3600` segundos |
-| **Resposta** | Status `200 OK` |
+| **Status** | `200 OK` |
 
-#### Exemplo de Resposta JSON:
+#### Exemplo de Resposta JSON (`200 OK`):
 
 ```json
 {
@@ -119,7 +139,7 @@ Estenda o tempo de acesso da sua aplicação sem a necessidade de retransmitir a
 ```
 
 > [!TIP]
-> **Estratégia de Renovação:** Programe sua aplicação para executar o *refresh* periodicamente antes dos 3.600 segundos expirarem. Isso evita ter que refazer o fluxo de login via Basic Auth.
+> **Estratégia de Renovação:** Programe sua aplicação para executar a atualização periodicamente antes dos 3.600 segundos expirarem. Isso evita ter que refazer o fluxo de login via Basic Auth.
 
 > [!NOTE]
-> Para testar requisições diretamente pelo portal, consulte as instruções na [Visão geral](#auth/description/1-visão-geral).
+> Teste este endpoint pelo menu lateral em [**Atualizar token JWT**](#auth/tag/autenticação/POST/api/v1/auth/refresh)
