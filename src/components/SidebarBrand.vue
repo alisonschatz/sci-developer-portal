@@ -13,7 +13,13 @@ useSidebarStickyOffset(rootEl);
 <template>
   <div ref="rootEl" class="sidebar-brand">
     <a class="sidebar-brand__logo" :class="{ 'is-fallback': logoFailed }" href="/" aria-label="SCI Sistemas Contábeis">
-      <img src="/assets/sci-logo.png" alt="" @error="logoFailed = true" />
+      <!-- data-medium-zoom-disabled garante que o medium-zoom ignore este elemento -->
+      <img
+        src="/assets/sci-logo.png"
+        alt=""
+        data-medium-zoom-disabled
+        @error="logoFailed = true"
+      />
       <strong class="sidebar-brand__logo-fallback">SCI</strong>
     </a>
     <div class="sidebar-brand__title">
@@ -43,11 +49,20 @@ useSidebarStickyOffset(rootEl);
   text-decoration: none;
 }
 
-.sidebar-brand__logo img {
-  height: 28px;
-  width: 28px;
-  display: block;
-  border-radius: 50%;
+/* Proteção completa contra molduras e cursores do CSS global */
+.sidebar-brand__logo img,
+.sidebar-brand__logo img:hover {
+  height: 28px !important;
+  width: 28px !important;
+  display: block !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transform: none !important;
 }
 
 .sidebar-brand__logo-fallback {
@@ -59,7 +74,7 @@ useSidebarStickyOffset(rootEl);
 }
 
 .sidebar-brand__logo.is-fallback img {
-  display: none;
+  display: none !important;
 }
 
 .sidebar-brand__logo.is-fallback .sidebar-brand__logo-fallback {
