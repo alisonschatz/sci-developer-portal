@@ -69,7 +69,14 @@ O cliente deve gerar esta credencial no **SCI WEB**:
    ![Copiar token gerado](/assets/gerar-token4.png)
 
 > [!WARNING]
-> O Token de Cliente é exibido **uma única vez**. Em caso de perda, acesse o SCI WEB, revogue a chave antiga e gere uma nova.
+> **Atenção:** O Token de Cliente é exibido **uma única vez** no momento da criação.
+
+> [!NOTE]
+> **Em caso de perda do token:**
+> 1. Siga o [**passo 1**](#auth/description/como-obter-o-token-de-cliente) para acessar a janela de gerenciamento de tokens.
+> 2. Na coluna **Ações**, clique no ícone **"X"** para excluir a chave antiga.  
+>    ![Excluir token gerado](/assets/excluir-token.png)
+> 3. Em seguida, siga os [**passos de 2 a 4**](#auth/description/como-obter-o-token-de-cliente) para gerar um novo token.
 
 ---
 
