@@ -54,19 +54,19 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 
 1. **Acessar o menu de tokens:**  
    Acesse o [SCI WEB](https://sciweb.com.br), entre no **Módulo Cliente**, clique no seu nome de usuário localizado no canto superior direito e selecione **"Gerar token API"**.  
-   ![Gerar token API](../../public//gerar-token.png)
+   ![Gerar token API](/assets/gerar-token.png)
 
 2. **Iniciar a criação:**  
    Na janela de gerenciamento de tokens, clique no botão **"+ Criar novo token"**.  
-   ![Criar novo token](../../public//gerar-token2.png)
+   ![Criar novo token](/assets/gerar-token2.png)
 
 3. **Identificar o token:**  
    Defina um nome identificador para o token, como por exemplo *Integração RH*, e clique em **"Continuar"**.  
-   ![Nomear o token](../../public//gerar-token3.png)
+   ![Nomear o token](/assets/gerar-token3.png)
 
 4. **Copiar e armazenar:**  
    Clique em **"Copiar"** para copiar a chave gerada e salve-a imediatamente em um local seguro.  
-   ![Copiar token gerado](../../public//gerar-token4.png)
+   ![Copiar token gerado](/assets/gerar-token4.png)
 
 > [!WARNING]
 > **Atenção:** O Token de Cliente é exibido **uma única vez** no momento da criação.
@@ -75,7 +75,7 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 > **Em caso de perda do token:**
 > 1. Siga o [**passo 1**](#auth/description/como-obter-o-token-de-cliente) para acessar a janela de gerenciamento de tokens.
 > 2. Na coluna **Ações**, clique no ícone **"X"** para excluir a chave antiga.  
->    ![Excluir token gerado](../../public//excluir-token.png)
+>    ![Excluir token gerado](/assets/excluir-token.png)
 > 3. Em seguida, siga os [**passos de 2 a 4**](#auth/description/como-obter-o-token-de-cliente) para gerar um novo token.
 
 ---
