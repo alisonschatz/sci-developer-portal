@@ -9,7 +9,6 @@ Efetua a autenticação inicial utilizando as credenciais secretas para emitir u
 | :--- | :--- |
 | **Tipo de Autenticação** | HTTP Basic Auth |
 | **Credenciais** | `Username:` [Token de Parceiro](#auth/description/como-obter-o-token-de-parceiro) <br> `Password:` [Token de Cliente](#auth/description/como-obter-o-token-de-cliente) |
-| **Validade da Chave** | `3600` segundos (1 hora) |
 
 ---
 

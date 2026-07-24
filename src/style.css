@@ -311,3 +311,21 @@ body {
   box-shadow: none !important;
   cursor: zoom-out !important;
 }
+
+/* ==========================================================================
+   5. OCULTAR CABEÇALHO PADRÃO DO SCALAR (VERSÃO, TÍTULO NATIVO E DOWNLOADS)
+   ========================================================================== */
+
+/* Oculta o container de botões "Download OpenAPI Document" / dropdowns de export */
+.scalar-api-reference .download-button,
+.scalar-api-reference [data-v-e2d93e8e] .download-button,
+.scalar-api-reference [class*="download"] {
+  display: none !important;
+}
+
+/* Oculta o título principal e as badges nativas do topo do documento no Scalar */
+.scalar-api-reference .section-header,
+.scalar-api-reference .section-header-title,
+.scalar-api-reference .section-header-badges {
+  display: none !important;
+}

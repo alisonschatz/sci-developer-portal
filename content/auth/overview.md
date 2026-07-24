@@ -1,18 +1,33 @@
-## 🌐 1. Visão geral
+## 🌐 1. Visão Geral
 
-A **API Auth** é o serviço central de autenticação da SCI, responsável por gerar e atualizar o **token JWT** que autoriza o acesso a **todas as APIs da SCI**.
+A **API Auth** é o serviço central de autenticação da SCI, responsável pela emissão e renovação dos **tokens JWT** que autorizam o acesso a **todas as APIs da plataforma**.
 
 > [!NOTE]
 > **O que é o Token JWT?**  
-> É uma chave de acesso temporária enviada no cabeçalho das requisições (`Authorization: Bearer <token>`) para autenticar chamadas de forma segura.
-
-> [!TIP]
-> **Autenticação Global no Portal:**  
-> Ao autenticar nesta página, o portal aplica automaticamente o cabeçalho `Authorization: Bearer <token>` em **todas as APIs do portal**.
+> É uma credencial de acesso temporária enviada no cabeçalho HTTP (`Authorization: Bearer <token>`) para validar suas requisições com segurança.
 
 ---
 
-## 🔏 2. Credenciais de acesso
+## 🔧 2. Testes e Importação
+
+Você pode testar nossas APIs diretamente pelo botão **"Test Request"** / **"Send"** ao lado de cada endpoint sem instalar nada.
+
+> [!TIP]
+> **Autenticação Automática no Portal:**  
+> Ao efetuar login ou renovar o token nesta página, o portal injeta automaticamente o cabeçalho `Authorization: Bearer <token>` em **todas as demais APIs do portal**. Não é necessário copiar e colar o token manualmente.
+
+Caso prefira utilizar seu próprio cliente de API (Postman, Insomnia ou qualquer outro compatível com OpenAPI), utilize nossa especificação padronizada em **OpenAPI 3.0**:
+
+* 📄 **[Baixar arquivo OpenAPI (`auth.json`)](/openapi/auth.json)**
+* 📋 **URL para importação direta:** `https://seu-portal.com/openapi/auth.json`
+
+> [!TIP]
+> **Como importar no seu cliente REST:**  
+> No aplicativo de sua escolha, vá em **Import** e cole a URL acima (ou selecione o arquivo `.json` baixado).
+
+---
+
+## 🔐 3. Credenciais de acesso
 
 Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas na **tabela de credenciais de acesso** abaixo:
 
@@ -80,18 +95,22 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 
 ---
 
-## 🔐 3. Autenticação
+## 🔗 4. Fluxo de Integração
 
-A autenticação é dividida em dois fluxos complementares. Escolha a operação adequada para o estado atual da sua aplicação:
+Após obter suas [credenciais de acesso](#auth/description/2-credenciais-de-acesso), configure a autenticação do seu sistema seguindo estas etapas:
 
-| Necessidade da Integração | Autenticação Requerida |
-| :--- | :--- |
-| [**Gerar JWT**](#auth/description/gerar-jwt)<br>*(Primeiro acesso)* | **Basic Auth** (`Username` + `Password`) |
-| [**Atualizar JWT**](#auth/description/atualizar-jwt)<br>*(Renovação de sessão)* | **Bearer Auth** (`Bearer <token_jwt_atual>`) |
+1. **Emitir o token inicial:**  
+   Consulte a documentação de **[Gerar JWT](#auth/description/gerar-jwt)** para realizar o primeiro acesso com suas credenciais e obter um token válido por 1 hora.
 
-### 🔑 Gerar JWT
+2. **Manter a sessão ativa:**  
+   Antes do prazo de 1 hora expirar, acesse **[Atualizar JWT](#auth/description/atualizar-jwt)** para renovar a sessão por mais 1 hora. Isso evita retransmitir suas credenciais secretas pela rede.
 
-Efetue o login para emitir um **Token JWT** válido por **1 hora (3.600 segundos)**.
+3. **Tratar falhas de acesso (`401`):**  
+   Caso uma requisição retorne `401 Unauthorized` (token expirado ou revogado), sua aplicação deve reiniciar o fluxo a partir do **[Gerar JWT](#auth/description/gerar-jwt)**.
+
+### ⚡ Gerar JWT
+
+Efetue o login para emitir um **Token JWT** válido por **1 hora**.
 
 | Item | Detalhe |
 | :--- | :--- |
@@ -120,9 +139,9 @@ Efetue o login para emitir um **Token JWT** válido por **1 hora (3.600 segundos
 
 ---
 
-### 🔑 Atualizar JWT
+### ⏳ Atualizar JWT
 
-Estenda o tempo de acesso da sua aplicação sem a necessidade de retransmitir as credenciais secretas primárias (`Token de Parceiro` e `Token de Cliente`). Ao renovar, o novo JWT retornado substitui o anterior e renova a sessão por mais **3.600 segundos (1 hora)**.
+Estenda o tempo de acesso da sua aplicação sem a necessidade de retransmitir as credenciais secretas primárias (`Token de Parceiro` e `Token de Cliente`). Ao renovar, o novo JWT retornado substitui o anterior e renova a sessão por mais **1 hora**.
 
 | Item | Detalhe |
 | :--- | :--- |

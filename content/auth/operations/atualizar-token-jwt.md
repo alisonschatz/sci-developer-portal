@@ -9,7 +9,6 @@ Renova a sessão estendendo o tempo de acesso por mais **1 hora (3.600 segundos)
 | :--- | :--- |
 | **Tipo de Autenticação** | Bearer Auth |
 | **Credencial** | `Bearer <token_jwt_atual>` |
-| **Validade do Novo Token** | `3600` segundos (1 hora) |
 
 ---
 
