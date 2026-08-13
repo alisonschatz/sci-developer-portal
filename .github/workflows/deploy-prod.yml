@@ -3,8 +3,10 @@
 # homologação) passa a ser responsabilidade do DevOps — ver deploy-hml.yml.
 #
 # Secrets necessários (Settings → Secrets and variables → Actions):
-#   AUTH_SERVER_URL          ex.: https://api-auth.sci.com.br
-#   RHNETSOCIAL_SERVER_URL   ex.: https://api2.rhnetsocial.com.br
+#   AUTH_SERVER_URL                  ex.: https://api-auth.sci.com.br
+#   RHNETSOCIAL_SERVER_URL           ex.: https://api2.rhnetsocial.com.br
+#   SCI_REPORT_ATENDIMENTO_SERVER_URL
+#   SCI_REPORT_24H_SERVER_URL
 #   (API nova = +1 secret <ID>_SERVER_URL — o nome é derivado do id;
 #    `npm run env:example` lista todos.)
 name: "Deploy — Produção"
@@ -42,6 +44,8 @@ jobs:
         env:
           AUTH_SERVER_URL: ${{ secrets.AUTH_SERVER_URL }}
           RHNETSOCIAL_SERVER_URL: ${{ secrets.RHNETSOCIAL_SERVER_URL }}
+          SCI_REPORT_ATENDIMENTO_SERVER_URL: ${{ secrets.SCI_REPORT_ATENDIMENTO_SERVER_URL }}
+          SCI_REPORT_24H_SERVER_URL: ${{ secrets.SCI_REPORT_24H_SERVER_URL }}
         run: |
           node scripts/fetch.js production
           node scripts/build-content.js production
