@@ -41,6 +41,24 @@ export const apis = [
     default: false,
   },
 
+  {
+    id: 'sci-report-atendimento',
+    title: 'SCI Report Atendimento',
+    slug: 'sci-report-atendimento',
+    isAuthProvider: false,
+    securityScheme: 'auto',
+    default: false,
+  },
+
+  {
+    id: 'sci-report-24h',
+    title: 'SCI Report 24h',
+    slug: 'sci-report-24h',
+    isAuthProvider: false,
+    securityScheme: 'auto',
+    default: false,
+  },
+
   // ── Próxima API entra aqui (npm run api:new) ─────────────────────────
 ];
 
