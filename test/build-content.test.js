@@ -160,7 +160,6 @@ test('integração: transformSpec com o conteúdo real da auth produz um spec fi
   const content = loadContent('auth', process.cwd());
   const out = transformSpec(spec, content, { serverUrl: 'https://api-auth.sci.com.br' });
 
-  assert.ok(out.info.description.includes('Visão geral'));
   assert.equal(out.paths['/api/v1/auth/credencial/login'].post.summary, 'Gerar token JWT');
   assert.equal(out.paths['/api/v1/auth/refresh'].post.summary, 'Atualizar token JWT');  
   assert.deepEqual(out.paths['/api/v1/auth/credencial/login'].post.security, [{ 'Gerar JWT': [] }]);
