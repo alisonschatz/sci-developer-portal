@@ -18,8 +18,8 @@ Você pode testar nossas APIs diretamente pelo botão **"Test Request"** / **"Se
 
 Caso prefira utilizar seu próprio cliente de API (Postman, Insomnia ou qualquer outro compatível com OpenAPI), utilize nossa especificação padronizada em **OpenAPI 3.0**:
 
-* 📄 **[Baixar arquivo OpenAPI (`auth.json`)](/openapi/auth.json)**
-* 📋 **URL para importação direta:** `https://seu-portal.com/openapi/auth.json`
+* 📄 **[Baixar arquivo OpenAPI (`auth.json`)](/sci-developer-portal/openapi/auth.json)**
+* 📋 **URL para importação direta:** `https://alisonschatz.github.io/sci-developer-portal/openapi/auth.json`
 
 > [!TIP]
 > **Como importar no seu cliente REST:**  
@@ -43,7 +43,7 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 ### 🔑 Como obter o Token de Parceiro
 
-> Este é o valor do campo **`Username`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele identifica o seu sistema integrador perante a SCI.
+> Este é o valor do campo **`Username`** na [tabela de credenciais de acesso](#auth/description/3-credenciais-de-acesso) — ele identifica o seu sistema integrador perante a SCI.
 
 > [!TIP]
 > **Já é parceiro SCI?**
@@ -63,7 +63,7 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 ### 🔑 Como obter o Token de Cliente
 
-> Este é o valor do campo **`Password`** na [tabela de credenciais de acesso](#auth/description/2-credenciais-de-acesso) — ele autoriza o acesso aos dados da sua empresa.
+> Este é o valor do campo **`Password`** na [tabela de credenciais de acesso](#auth/description/3-credenciais-de-acesso) — ele autoriza o acesso aos dados da sua empresa.
 
 O cliente deve gerar esta credencial no **SCI WEB**:
 
