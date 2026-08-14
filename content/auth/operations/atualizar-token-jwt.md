@@ -1,6 +1,6 @@
 ---
 operation: POST /api/v1/auth/refresh
-summary: Atualizar token JWT
+summary: Atualizar JWT
 ---
 
 Renova a sessão estendendo o tempo de acesso por mais **1 hora (3.600 segundos)** a partir do **token JWT atual**, dispensando o reenvio das credenciais (`Username` e `Password`).

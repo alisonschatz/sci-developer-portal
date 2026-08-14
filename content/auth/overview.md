@@ -41,7 +41,7 @@ Para gerar o **Token JWT**, sua aplicação deve enviar as credenciais mapeadas 
 
 ---
 
-### 🔑 Como obter o Token de Parceiro
+### 🤝 Como obter o Token de Parceiro
 
 > Este é o valor do campo **`Username`** na [tabela de credenciais de acesso](#auth/description/3-credenciais-de-acesso) — ele identifica o seu sistema integrador perante a SCI.
 

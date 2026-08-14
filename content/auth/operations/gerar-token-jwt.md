@@ -1,6 +1,6 @@
 ---
 operation: POST /api/v1/auth/credencial/login
-summary: Gerar token JWT
+summary: Gerar JWT
 ---
 
 Efetua a autenticação inicial utilizando as credenciais secretas para emitir um **Token JWT** com validade de **1 hora (3.600 segundos)**.
