@@ -97,7 +97,7 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 
 ## 🔗 4. Fluxo de Integração
 
-Após obter suas [credenciais de acesso](#auth/description/2-credenciais-de-acesso), configure a autenticação do seu sistema seguindo estas etapas:
+Após obter suas [credenciais de acesso](#auth/description/3-credenciais-de-acesso), configure a autenticação do seu sistema seguindo estas etapas:
 
 1. **Emitir o token inicial:**  
    Consulte a documentação de **[Gerar JWT](#auth/description/gerar-jwt)** para realizar o primeiro acesso com suas credenciais e obter um token válido por 1 hora.
