@@ -95,7 +95,7 @@ O cliente deve gerar esta credencial no **SCI WEB**:
 
 ---
 
-## 🔗 4. Fluxo de Integração
+## 🔌 4. Fluxo de Integração
 
 Após obter suas [credenciais de acesso](#auth/description/3-credenciais-de-acesso), configure a autenticação do seu sistema seguindo estas etapas:
 
