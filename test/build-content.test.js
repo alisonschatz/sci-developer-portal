@@ -113,8 +113,8 @@ test('parseFrontmatter separa cabeçalho YAML do corpo; sem frontmatter, corpo i
 
 test('loadContent lê o formato de pastas da API auth real (sem postResponseScript em lugar nenhum)', () => {
   const content = loadContent('auth', process.cwd());  
-  assert.equal(content.operations['POST /api/v1/auth/credencial/login'].summary, 'Gerar token JWT');
-  assert.equal(content.operations['POST /api/v1/auth/refresh'].summary, 'Atualizar token JWT');
+  assert.equal(content.operations['POST /api/v1/auth/credencial/login'].summary, 'Gerar JWT');
+  assert.equal(content.operations['POST /api/v1/auth/refresh'].summary, 'Atualizar JWT');
   assert.deepEqual(content.warnings, [], 'conteúdo real não deveria gerar nenhum aviso');
   const serialized = JSON.stringify(content);
   assert.equal(serialized.includes('postResponseScript'), false);
@@ -160,8 +160,8 @@ test('integração: transformSpec com o conteúdo real da auth produz um spec fi
   const content = loadContent('auth', process.cwd());
   const out = transformSpec(spec, content, { serverUrl: 'https://api-auth.sci.com.br' });
 
-  assert.equal(out.paths['/api/v1/auth/credencial/login'].post.summary, 'Gerar token JWT');
-  assert.equal(out.paths['/api/v1/auth/refresh'].post.summary, 'Atualizar token JWT');  
+  assert.equal(out.paths['/api/v1/auth/credencial/login'].post.summary, 'Gerar JWT');
+  assert.equal(out.paths['/api/v1/auth/refresh'].post.summary, 'Atualizar JWT');  
   assert.deepEqual(out.paths['/api/v1/auth/credencial/login'].post.security, [{ 'Gerar JWT': [] }]);
   assert.deepEqual(out.paths['/api/v1/auth/refresh'].post.security, [{ 'Atualizar JWT': [] }]);
 });
