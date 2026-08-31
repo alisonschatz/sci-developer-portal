@@ -11,7 +11,7 @@ npm run api:sync   # baixa os specs de produção + gera o conteúdo final
 npm run dev
 ```
 
-## Onde cada coisa mora
+## Arquitetura
 
 ```
 apis.config.js            ← Toda API é declarada aqui
@@ -25,7 +25,7 @@ scripts/                  ← Pipeline (fetch → build) e utilitários
 src/plugins/              ← Plugin de token (API oficial do Scalar) + sync de storage
 src/config/               ← Configuration do Scalar, montada do portal.config.json
 public/portal.config.json ← Gerado pelo build
-test/                     ← 78 testes
+test/
 ```
 
 ## Como adicionar uma API nova
