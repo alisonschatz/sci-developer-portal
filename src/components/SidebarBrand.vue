@@ -5,8 +5,6 @@ import { useSidebarStickyOffset } from '../composables/useSidebarStickyOffset.js
 const rootEl = ref(null);
 const logoFailed = ref(false);
 
-// Calcula a altura acumulada dos elementos fixos acima da navegação
-// e atualiza a variável CSS --scalar-sidebar-sticky-offset.
 useSidebarStickyOffset(rootEl);
 </script>
 
@@ -30,8 +28,6 @@ useSidebarStickyOffset(rootEl);
 </template>
 
 <style scoped>
-/* Prioriza variáveis do Scalar com fallback para as variáveis da marca */
-/* Move o bloco de marca para o topo do container flex da sidebar */
 .sidebar-brand {
   order: -1;
   display: flex;
@@ -49,7 +45,6 @@ useSidebarStickyOffset(rootEl);
   text-decoration: none;
 }
 
-/* Proteção completa contra molduras e cursores do CSS global */
 .sidebar-brand__logo img,
 .sidebar-brand__logo img:hover {
   height: 28px !important;

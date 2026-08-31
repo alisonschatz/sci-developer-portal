@@ -6,10 +6,9 @@ import { apis, serverEnvVarName } from '../apis.config.js';
 /**
  * `npm run env` — deixa o ambiente local pronto:
  *   1. Regenera o .env.example a partir do manifesto (nomes das
- *      variáveis são DERIVADOS dos ids — nunca declarados à mão).
+ *      variáveis são DERIVADOS dos ids).
  *   2. Cria o .env a partir do .env.example se não existir; se existir,
- *      só ACRESCENTA as chaves que faltam — valores preenchidos nunca
- *      são tocados.
+ *      só ACRESCENTA as chaves que faltam.
  *   3. Avisa quais variáveis ainda estão vazias.
  */
 

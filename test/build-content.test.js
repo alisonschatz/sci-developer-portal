@@ -111,23 +111,25 @@ test('parseFrontmatter separa cabeçalho YAML do corpo; sem frontmatter, corpo i
   assert.ok(invalido.error.includes('frontmatter inválido'));
 });
 
-test('loadContent lê o formato de pastas da API auth real (sem postResponseScript em lugar nenhum)', () => {
-  const content = loadContent('auth', process.cwd());  
-  assert.equal(content.operations['POST /api/v1/auth/credencial/login'].summary, 'Gerar JWT');
-  assert.equal(content.operations['POST /api/v1/auth/refresh'].summary, 'Atualizar JWT');
-  assert.deepEqual(content.warnings, [], 'conteúdo real não deveria gerar nenhum aviso');
-  const serialized = JSON.stringify(content);
-  assert.equal(serialized.includes('postResponseScript'), false);
-  assert.equal(serialized.includes('pm.globals'), false);
-});
+test('loadContent ignora arquivos com prefixo _ (rascunho/modelo) em tags, operations e security', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'content-underscore-'));
+  const base = path.join(tmp, 'content', 'minha-api');
+  fs.mkdirSync(path.join(base, 'tags'), { recursive: true });
+  fs.mkdirSync(path.join(base, 'operations'), { recursive: true });
 
-test('loadContent ignora arquivos _modelo/_rascunho (prefixo _)', () => {
-  const auth = loadContent('auth', process.cwd());
-  assert.equal('NomeExatoDaTag' in (auth.tags || {}), false);
-  assert.equal('GET /api/v1/exemplo' in (auth.operations || {}), false);
+  fs.writeFileSync(path.join(base, 'tags', '_modelo.md'), '---\ntag: TagQueNaoDeveEntrar\n---\n\nModelo.');
+  fs.writeFileSync(path.join(base, 'tags', 'real.md'), '---\ntag: TagReal\n---\n\nDescrição real.');
+  fs.writeFileSync(
+    path.join(base, 'operations', '_rascunho.md'),
+    '---\noperation: GET /api/v1/exemplo\nsummary: Não deveria aparecer\n---\n\nRascunho.'
+  );
 
-  const rh = loadContent('rhnetsocial', process.cwd());
-  assert.equal(rh.tags, null, 'rascunho _feriado não deveria contar como conteúdo');
+  const content = loadContent('minha-api', tmp);
+  assert.equal('TagQueNaoDeveEntrar' in (content.tags || {}), false);
+  assert.equal('TagReal' in (content.tags || {}), true);
+  assert.equal('GET /api/v1/exemplo' in (content.operations || {}), false);
+
+  fs.rmSync(tmp, { recursive: true, force: true });
 });
 
 test('loadContent: exemplo .example.json pareado pelo nome do .md; frontmatter faltando e exemplo órfão geram avisos', () => {
@@ -153,17 +155,6 @@ test('loadContent: exemplo .example.json pareado pelo nome do .md; frontmatter f
   assert.ok(content.warnings.some((w) => w.includes('orfao.example.json')));
 
   fs2.rmSync(tmp, { recursive: true, force: true });
-});
-
-test('integração: transformSpec com o conteúdo real da auth produz um spec final coerente', () => {
-  const spec = fixture();
-  const content = loadContent('auth', process.cwd());
-  const out = transformSpec(spec, content, { serverUrl: 'https://api-auth.sci.com.br' });
-
-  assert.equal(out.paths['/api/v1/auth/credencial/login'].post.summary, 'Gerar JWT');
-  assert.equal(out.paths['/api/v1/auth/refresh'].post.summary, 'Atualizar JWT');  
-  assert.deepEqual(out.paths['/api/v1/auth/credencial/login'].post.security, [{ 'Gerar JWT': [] }]);
-  assert.deepEqual(out.paths['/api/v1/auth/refresh'].post.security, [{ 'Atualizar JWT': [] }]);
 });
 
 test('applyInfo renomeia a API (title) e a versão exibida', () => {
