@@ -11,7 +11,7 @@ const targets = [
 ];
 const files = ['public/portal.config.json'];
 
-console.log('🧹 Limpando arquivos gerados...');
+console.log('Limpando arquivos gerados...');
 for (const target of targets) {
   const fullPath = path.resolve(target.path);
   if (!fs.existsSync(fullPath)) continue;
@@ -28,4 +28,4 @@ for (const file of files) {
     console.log(`🗑️  Removido: ${file}`);
   }
 }
-console.log('✨ Pronto!');
+console.log('Pronto!');
